@@ -618,7 +618,7 @@ export function Concierge() {
     let answer: Message;
     if (/bag|luggage|locker|oversiz|access fail/.test(q))
       answer = {
-        text: "One locker per traveller. Reserve storage, use your QR to secure your bag, and collect it whenever you need. For oversized items, open Hotel information & help.",
+        text: "One complimentary locker per guest. Additional lockers cost £15 each. Reserve storage, use your QR to secure your bag, and collect it whenever you need. For oversized items, open Hotel information & help.",
         action: ["stored", "released"].includes(s.bag)
           ? "collect"
           : s.bag === "reserved"

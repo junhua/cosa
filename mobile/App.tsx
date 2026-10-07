@@ -28,6 +28,7 @@ import {
 } from "./src/stay";
 import { translate, TextKey } from "./src/i18n";
 import { colors, Fine, Icon, Notice, Sheet, ui } from "./src/components";
+import { BookingLoading } from "./src/BookingScreen";
 import { Cosa, Page, titles } from "./src/context";
 
 const storageKey = "cosa-guest-v3";
@@ -68,13 +69,7 @@ function StayApp() {
       alive = false;
     };
   }, []);
-  if (!hydrated)
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.forest} />
-        <Text style={ui.fine}>Preparing your stay…</Text>
-      </View>
-    );
+  if (!hydrated) return <BookingLoading message="Preparing your stay…" />;
   return <HydratedApp initial={hydrated} initialStorageError={storageError} />;
 }
 function HydratedApp({
@@ -142,6 +137,12 @@ function HydratedApp({
       }
     });
   }, [s]);
+  useEffect(() => {
+    if (!s.bookingLinked && page !== "booking") router.replace("/booking");
+    else if (s.bookingLinked && page === "booking") router.replace("/");
+  }, [s.bookingLinked, page, router]);
+  const guestShell = s.bookingLinked && page !== "booking";
+  const redirecting = !s.bookingLinked && page !== "booking";
   const title =
     page === "arrival"
       ? t("checkin")
@@ -155,101 +156,128 @@ function HydratedApp({
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <StatusBar style="dark" />
         <View style={styles.app}>
-          <View style={styles.header}>
-            {page === "home" ? (
-              <Text style={styles.brand}>Cōsa</Text>
-            ) : (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Back to previous screen"
-                  onPress={back}
-                  style={ui.iconButton}
-                >
-                  <Icon name="arrow-left" />
-                </Pressable>
-                <Text style={styles.headerTitle}>{title}</Text>
-              </>
-            )}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Choose language"
-              style={styles.language}
-              onPress={() => {
-                Keyboard.dismiss();
-                setLanguageSheet(true);
-              }}
-            >
-              <Text style={styles.languageText}>
-                {s.language.toUpperCase()}
-              </Text>
-              <Icon name="chevron-down" size={15} />
-            </Pressable>
-          </View>
+          {guestShell && (
+            <View style={styles.header}>
+              {page === "home" ? (
+                <Text style={styles.brand}>Cōsa</Text>
+              ) : (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Back to previous screen"
+                    onPress={back}
+                    style={ui.iconButton}
+                  >
+                    <Icon name="arrow-left" />
+                  </Pressable>
+                  <Text style={styles.headerTitle}>{title}</Text>
+                </>
+              )}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose language"
+                style={styles.language}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setLanguageSheet(true);
+                }}
+              >
+                <Text style={styles.languageText}>
+                  {s.language.toUpperCase()}
+                </Text>
+                <Icon name="chevron-down" size={15} />
+              </Pressable>
+            </View>
+          )}
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 1 }}
           >
             <ScrollView
               ref={scroll}
-              contentContainerStyle={styles.content}
+              contentContainerStyle={[
+                styles.content,
+                !guestShell && { flexGrow: 1, paddingTop: 0 },
+              ]}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
             >
               {!!storageError && <Notice error>{storageError}</Notice>}
-              <Slot key={epoch} />
+              {redirecting && <BookingLoading message="Preparing your stay…" />}
+              <View
+                style={
+                  redirecting
+                    ? { display: "none" }
+                    : !guestShell
+                      ? { flex: 1 }
+                      : undefined
+                }
+              >
+                <Slot key={epoch} />
+              </View>
             </ScrollView>
           </KeyboardAvoidingView>
-          <View style={styles.nav}>
-            {(
-              [
-                { page: "home", key: "stay", icon: "home" },
-                { page: "hotel", key: "hotel", icon: "compass" },
-                { page: "concierge", key: "concierge", icon: "message-circle" },
-              ] as const
-            ).map((item) => {
-              const active =
-                item.page === "home"
-                  ? ![
-                      "hotel",
-                      "directions",
-                      "housekeeping",
-                      "concierge",
-                    ].includes(page)
-                  : item.page === "hotel"
-                    ? ["hotel", "directions", "housekeeping"].includes(page)
-                    : page === "concierge";
-              return (
-                <Pressable
-                  key={item.page}
-                  accessibilityRole="tab"
-                  accessibilityLabel={t(item.key)}
-                  accessibilityState={{ selected: active }}
-                  onPress={() => tab(item.page)}
-                  style={styles.navItem}
-                >
-                  <Icon
-                    name={item.icon}
-                    size={23}
-                    color={active ? colors.forest : colors.muted}
-                  />
-                  <Text
-                    style={[styles.navText, active && { color: colors.forest }]}
+          {guestShell && (
+            <View style={styles.nav}>
+              {(
+                [
+                  { page: "home", key: "stay", icon: "home" },
+                  { page: "hotel", key: "hotel", icon: "compass" },
+                  {
+                    page: "concierge",
+                    key: "concierge",
+                    icon: "message-circle",
+                  },
+                ] as const
+              ).map((item) => {
+                const active =
+                  item.page === "home"
+                    ? ![
+                        "hotel",
+                        "directions",
+                        "housekeeping",
+                        "concierge",
+                      ].includes(page)
+                    : item.page === "hotel"
+                      ? ["hotel", "directions", "housekeeping"].includes(page)
+                      : page === "concierge";
+                return (
+                  <Pressable
+                    key={item.page}
+                    accessibilityRole="tab"
+                    accessibilityLabel={t(item.key)}
+                    accessibilityState={{ selected: active }}
+                    onPress={() => tab(item.page)}
+                    style={styles.navItem}
                   >
-                    {t(item.key)}
-                  </Text>
-                  <View
-                    style={[
-                      styles.navLine,
-                      {
-                        backgroundColor: active ? colors.forest : "transparent",
-                      },
-                    ]}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
+                    <Icon
+                      name={item.icon}
+                      size={23}
+                      color={active ? colors.forest : colors.muted}
+                    />
+                    <Text
+                      style={[
+                        styles.navText,
+                        active && { color: colors.forest },
+                      ]}
+                    >
+                      {t(item.key)}
+                    </Text>
+                    <View
+                      style={[
+                        styles.navLine,
+                        {
+                          backgroundColor: active
+                            ? colors.forest
+                            : "transparent",
+                        },
+                      ]}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
       </SafeAreaView>
       <Sheet

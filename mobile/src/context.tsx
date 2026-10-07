@@ -2,9 +2,12 @@ import React, { createContext, useContext } from "react";
 import { Action, Stay } from "./stay";
 import { TextKey } from "./i18n";
 export type Page =
+  | "booking"
   | "home"
   | "arrival"
   | "room"
+  | "payment"
+  | "additional-locker"
   | "luggage"
   | "drop"
   | "collect"
@@ -17,9 +20,12 @@ export type Page =
   | "food"
   | "concierge";
 export const titles: Record<Page, string> = {
+  booking: "Find your stay",
   home: "My stay",
   arrival: "Your arrival",
   room: "Your capsule",
+  payment: "Locker payment",
+  "additional-locker": "Additional locker",
   luggage: "Luggage storage",
   drop: "Self-service bag drop",
   collect: "Collect luggage",

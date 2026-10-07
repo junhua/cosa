@@ -7,6 +7,7 @@ import {
   total,
   arrivalSlots,
   hours,
+  extraLockerIds,
 } from "../src/stay";
 test("room key requires arrival, readiness, and an active stay", () => {
   assert.equal(reduce(initialStay, { type: "room-key" }).unlocked, false);
@@ -27,6 +28,87 @@ test("room key requires arrival, readiness, and an active stay", () => {
   assert.equal(s.unlocked, false);
   assert.equal(s.ready, false);
   assert.equal(reduce(s, { type: "room-key" }).unlocked, false);
+});
+
+const purchase = {
+  type: "pay-lockers" as const,
+  id: "LP-test",
+  quantity: 2,
+  day: "23 Sep",
+  time: "10:00",
+  now: 1000,
+};
+test("local payment assigns paid lockers, preserves the free locker and saves a receipt", () => {
+  const linked = {
+    ...initialStay,
+    bookingLinked: true,
+    bag: "stored" as const,
+  };
+  const paid = reduce(linked, purchase);
+  assert.equal(paid.bag, "stored");
+  assert.equal(paid.lockerPayments[0].amount, 3000);
+  assert.equal(paid.lockerPayments[0].currency, "GBP");
+  assert.deepEqual(paid.lockerPayments[0].lockerIds, ["L09", "L10"]);
+  assert.equal(paid.additionalLockers.length, 2);
+  assert.deepEqual(restoreStay(JSON.parse(JSON.stringify(paid))), paid);
+  assert.equal(reduce(paid, purchase), paid);
+  const malformed = restoreStay({
+    ...paid,
+    lockerPayments: [{ ...paid.lockerPayments[0], amount: 1 }],
+  });
+  assert.equal(malformed.lockerPayments.length, 0);
+  assert.equal(malformed.additionalLockers.length, 0);
+});
+test("payment rejects invalid requests and unavailable inventory without creating receipts", () => {
+  assert.equal(reduce(initialStay, purchase), initialStay);
+  const linked = { ...initialStay, bookingLinked: true };
+  for (const changes of [
+    { quantity: 0 },
+    { quantity: 1.5 },
+    { quantity: 9 },
+    { day: "27 Sep" },
+    { time: "bad" },
+  ]) {
+    assert.equal(reduce(linked, { ...purchase, ...changes }), linked);
+  }
+  const full = reduce(linked, { ...purchase, quantity: extraLockerIds.length });
+  assert.equal(reduce(full, { ...purchase, id: "LP-next", quantity: 1 }), full);
+});
+test("paid locker collection requires a closed door and all luggage removed; checkout retains access", () => {
+  let s = reduce(
+    { ...initialStay, bookingLinked: true, prechecked: true, arrived: true },
+    purchase,
+  );
+  const allocation = s.additionalLockers[0].allocation;
+  const operate = (
+    operation: "deposit" | "unlock" | "finish" | "keep",
+    closed = false,
+    removed = false,
+  ) => ({
+    type: "extra-locker" as const,
+    allocation,
+    operation,
+    closed,
+    removed,
+  });
+  assert.equal(reduce(s, operate("deposit")), s);
+  s = reduce(s, operate("deposit", true));
+  s = reduce(s, operate("unlock"));
+  assert.equal(reduce(s, operate("finish", true)), s);
+  assert.equal(
+    reduce(s, { type: "checkout", reviewed: true, belongingsRemoved: true }),
+    s,
+  );
+  s = reduce(s, operate("keep", true));
+  s = reduce(s, { type: "checkout", reviewed: true, belongingsRemoved: true });
+  assert.equal(s.departed, true);
+  s = reduce(s, operate("unlock"));
+  s = reduce(s, operate("finish", true, true));
+  assert.equal(s.additionalLockers[0].bag, "collected");
+  assert.equal(s.additionalLockers[1].bag, "reserved");
+  s = reduce(s, { ...purchase, id: "LP-again", quantity: 1, day: "26 Sep" });
+  assert.equal(s.lockerPayments[1].lockerIds[0], "L09");
+  assert.notEqual(s.additionalLockers[2].allocation, allocation);
 });
 test("one locker, closed-door deposit, and complete collection are enforced", () => {
   let s = reduce(initialStay, {
@@ -250,5 +332,32 @@ test("collection can be paused by closing and relocking the occupied locker", ()
       { type: "collect-keep", closed: true },
     ).bag,
     "collected",
+  );
+});
+
+test("booking reference is validated and linking survives a saved session", () => {
+  assert.equal(initialStay.bookingLinked, false);
+  assert.equal(
+    reduce(initialStay, { type: "link-booking", reference: "WRONG-123" }),
+    initialStay,
+  );
+  const linked = reduce(initialStay, {
+    type: "link-booking",
+    reference: " csa-0913 ",
+  });
+  assert.equal(linked.bookingLinked, true);
+  assert.equal(linked.prechecked, false);
+  assert.equal(
+    restoreStay(JSON.parse(JSON.stringify(linked))).bookingLinked,
+    true,
+  );
+  assert.equal(
+    restoreStay({ ...initialStay, bookingLinked: undefined, prechecked: true })
+      .bookingLinked,
+    true,
+  );
+  assert.equal(
+    restoreStay({ ...initialStay, bookingLinked: undefined }).bookingLinked,
+    false,
   );
 });

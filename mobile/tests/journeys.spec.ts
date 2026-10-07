@@ -9,7 +9,7 @@ async function choose(page: Page, label: string, value: string) {
 async function start(page: Page, state = initialStay) {
   await page.addInitScript(
     (value) => sessionStorage.setItem("cosa-guest-v3", JSON.stringify(value)),
-    state,
+    { ...state, bookingLinked: true },
   );
   await page.goto("/");
 }
@@ -193,5 +193,40 @@ test("hotel help saves and cancels a request", async ({ page }) => {
     .click();
   await expect(
     page.getByRole("button", { name: "Send request", exact: true }),
+  ).toBeVisible();
+});
+
+test("booking gate protects guest routes and opens the welcome page after lookup", async ({
+  page,
+}) => {
+  await page.goto("/arrival");
+  await expect(
+    page.getByRole("heading", { name: "Find your stay." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue to my stay", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("textbox", { name: "Reference booking ID", exact: true })
+    .fill("UNKNOWN");
+  await page
+    .getByRole("button", { name: "Continue to my stay", exact: true })
+    .click();
+  await expect(
+    page.getByText("Finding your stay…", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/We couldn’t find that booking/)).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Reference booking ID", exact: true })
+    .fill("CSA-0913");
+  await page
+    .getByRole("button", { name: "Continue to my stay", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Welcome, Mina.", exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Welcome, Mina.", exact: true }),
   ).toBeVisible();
 });

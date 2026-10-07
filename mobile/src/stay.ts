@@ -3,7 +3,7 @@ export const arrivalSlots = Array.from(
   { length: 11 },
   (_, i) => `${i + 1}pm–${i === 10 ? "12am" : `${i + 2}pm`}`,
 );
-export const days = ["23 Sep", "24 Sep", "25 Sep", "26 Sep", "27 Sep"];
+export const days = ["23 Sep", "24 Sep", "25 Sep", "26 Sep"];
 export const hours = Array.from(
   { length: 24 },
   (_, i) => `${String(i).padStart(2, "0")}:00`,
@@ -17,7 +17,32 @@ export type Housekeeping = {
   notes: string;
   status: "requested" | "cancelled" | "completed";
 };
+export const matchesBookingReference = (reference: string) =>
+  reference.trim().toUpperCase().replace(/[-\s]/g, "") === "CSA0913";
+export const extraLockerIds = Array.from(
+  { length: 8 },
+  (_, i) => `L${String(i + 9).padStart(2, "0")}`,
+);
+export const extraLockerPrice = 1500; // GBP minor units; never calculate charges from UI text.
+export type ExtraLocker = {
+  allocation: string;
+  id: string;
+  bag: Exclude<Bag, "none">;
+  day: string;
+  time: string;
+};
+export type LockerPayment = {
+  id: string;
+  quantity: number;
+  amount: number;
+  currency: "GBP";
+  paidAt: number;
+  lockerIds: string[];
+};
 export type Stay = {
+  additionalLockers: ExtraLocker[];
+  lockerPayments: LockerPayment[];
+  bookingLinked: boolean;
   language: Language;
   prechecked: boolean;
   arrivalTime: string;
@@ -51,6 +76,9 @@ export type Stay = {
   }[];
 };
 export const initialStay: Stay = {
+  additionalLockers: [],
+  lockerPayments: [],
+  bookingLinked: false,
   language: "en",
   prechecked: false,
   arrivalTime: arrivalSlots[0],
@@ -187,6 +215,59 @@ export function restoreStay(value: unknown): Stay {
   )
     s.bag = old.bag as Bag;
   if (old.bag === "tagged") s.bag = "reserved";
+  if (Array.isArray(old.lockerPayments))
+    s.lockerPayments = old.lockerPayments
+      .filter(
+        (p) =>
+          p &&
+          typeof p.id === "string" &&
+          Number.isInteger(p.quantity) &&
+          p.quantity > 0 &&
+          p.quantity <= extraLockerIds.length &&
+          p.amount === p.quantity * extraLockerPrice &&
+          p.currency === "GBP" &&
+          Number.isFinite(p.paidAt) &&
+          Array.isArray(p.lockerIds) &&
+          p.lockerIds.length === p.quantity &&
+          new Set(p.lockerIds).size === p.quantity &&
+          p.lockerIds.every((id: unknown) =>
+            extraLockerIds.includes(String(id)),
+          ),
+      )
+      .filter(
+        (p, index, payments) =>
+          payments.findIndex((other) => other.id === p.id) === index,
+      )
+      .map((p) => ({
+        id: p.id,
+        quantity: p.quantity,
+        amount: p.amount,
+        currency: "GBP",
+        paidAt: p.paidAt,
+        lockerIds: [...p.lockerIds],
+      }));
+  if (Array.isArray(old.additionalLockers))
+    s.additionalLockers = old.additionalLockers
+      .filter(
+        (l) =>
+          l &&
+          typeof l.allocation === "string" &&
+          extraLockerIds.includes(l.id) &&
+          ["reserved", "stored", "released", "collected"].includes(l.bag) &&
+          days.includes(l.day) &&
+          hours.includes(l.time) &&
+          s.lockerPayments.some(
+            (p) =>
+              l.allocation === `${p.id}:${l.id}` && p.lockerIds.includes(l.id),
+          ),
+      )
+      .map((l) => ({
+        allocation: l.allocation,
+        id: l.id,
+        bag: l.bag,
+        day: l.day,
+        time: l.time,
+      }));
   s.bagDoorOpen = s.bag === "released";
   s.cartItems = normalizeLines(old.cartItems);
   s.orderItems = normalizeLines(
@@ -212,6 +293,10 @@ export function restoreStay(value: unknown): Stay {
       notes: hk.notes,
       status: hk.status,
     };
+  s.bookingLinked =
+    old.bookingLinked === true ||
+    (old.bookingLinked === undefined &&
+      (s.prechecked || s.arrived || s.bag !== "none" || s.order !== "none"));
   if (s.arrived) s.prechecked = true;
   for (const key of [
     "roomReadyAt",
@@ -268,6 +353,22 @@ export function restoreStay(value: unknown): Stay {
   return s;
 }
 export type Action =
+  | { type: "link-booking"; reference: string }
+  | {
+      type: "pay-lockers";
+      id: string;
+      quantity: number;
+      day: string;
+      time: string;
+      now: number;
+    }
+  | {
+      type: "extra-locker";
+      allocation: string;
+      operation: "deposit" | "unlock" | "finish" | "keep";
+      closed?: boolean;
+      removed?: boolean;
+    }
   | { type: "preferences"; language?: Language; arrivalTime?: string }
   | { type: "precheck" }
   | { type: "arrive"; now?: number }
@@ -293,6 +394,83 @@ export type Action =
   | { type: "reset" };
 export function stayReducer(s: Stay, a: Action): Stay {
   switch (a.type) {
+    case "pay-lockers": {
+      const available = extraLockerIds.filter(
+        (id) =>
+          !s.additionalLockers.some(
+            (l) => l.id === id && l.bag !== "collected",
+          ),
+      );
+      if (
+        !s.bookingLinked ||
+        !a.id ||
+        s.lockerPayments.some((p) => p.id === a.id) ||
+        !Number.isInteger(a.quantity) ||
+        a.quantity < 1 ||
+        a.quantity > available.length ||
+        !days.includes(a.day) ||
+        (s.departed && a.day !== "26 Sep") ||
+        !hours.includes(a.time) ||
+        !Number.isFinite(a.now)
+      )
+        return s;
+      const ids = available.slice(0, a.quantity);
+      return {
+        ...s,
+        lockerPayments: [
+          ...s.lockerPayments,
+          {
+            id: a.id,
+            quantity: a.quantity,
+            amount: a.quantity * extraLockerPrice,
+            currency: "GBP",
+            paidAt: a.now,
+            lockerIds: ids,
+          },
+        ],
+        additionalLockers: [
+          ...s.additionalLockers,
+          ...ids.map((id) => ({
+            allocation: `${a.id}:${id}`,
+            id,
+            bag: "reserved" as const,
+            day: a.day,
+            time: a.time,
+          })),
+        ],
+      };
+    }
+    case "extra-locker": {
+      const locker = s.additionalLockers.find(
+        (l) => l.allocation === a.allocation,
+      );
+      if (!locker) return s;
+      const bag =
+        a.operation === "deposit" && locker.bag === "reserved" && a.closed
+          ? "stored"
+          : a.operation === "unlock" && locker.bag === "stored"
+            ? "released"
+            : a.operation === "finish" &&
+                locker.bag === "released" &&
+                a.closed &&
+                a.removed
+              ? "collected"
+              : a.operation === "keep" && locker.bag === "released" && a.closed
+                ? "stored"
+                : locker.bag;
+      return bag === locker.bag
+        ? s
+        : {
+            ...s,
+            additionalLockers: s.additionalLockers.map((l) =>
+              l.allocation === a.allocation ? { ...l, bag } : l,
+            ),
+          };
+    }
+    case "link-booking":
+      return matchesBookingReference(a.reference)
+        ? { ...s, bookingLinked: true }
+        : s;
     case "preferences":
       return {
         ...s,
@@ -353,7 +531,8 @@ export function stayReducer(s: Stay, a: Action): Stay {
         a.reviewed &&
         a.belongingsRemoved &&
         !s.bagDoorOpen &&
-        s.bag !== "released"
+        s.bag !== "released" &&
+        !s.additionalLockers.some((l) => l.bag === "released")
         ? {
             ...s,
             departed: true,

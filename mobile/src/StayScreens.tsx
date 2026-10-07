@@ -234,7 +234,7 @@ export function Arrival() {
             }
           />
           <Fine>
-            Hourly windows · 1pm to midnight · Singapore time. 12am means the
+            Hourly windows · 1pm to midnight · London time. 12am means the
             start of 24 Sep.
           </Fine>
           <CheckBox
@@ -414,7 +414,11 @@ export function Checkout() {
   const { s, dispatch, go, t } = useCosa();
   const [removed, setRemoved] = useState(false),
     [reviewed, setReviewed] = useState(false);
-  const blocked = !s.arrived || s.bagDoorOpen || s.bag === "released";
+  const blocked =
+    !s.arrived ||
+    s.bagDoorOpen ||
+    s.bag === "released" ||
+    s.additionalLockers.some((l) => l.bag === "released");
   if (s.departed)
     return (
       <>
@@ -537,6 +541,14 @@ export function Beyond() {
           title="Your bags are still with us"
           detail="L08 · collect with your luggage QR"
           onPress={() => go("collect")}
+        />
+      )}
+      {s.additionalLockers.some((l) => l.bag !== "collected") && (
+        <Row
+          icon="briefcase"
+          title="Your additional lockers"
+          detail="Manage storage and collect your bags"
+          onPress={() => go("luggage")}
         />
       )}
       <Row

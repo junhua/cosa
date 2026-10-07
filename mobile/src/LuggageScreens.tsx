@@ -15,6 +15,7 @@ import {
 import { useCosa } from "./context";
 import { days, hours } from "./stay";
 import { Help, QR } from "./shared";
+import { AdditionalLockers } from "./PaymentScreens";
 import { hasLocker } from "./localAvailability";
 export function Luggage() {
   const { s, dispatch, go } = useCosa();
@@ -33,7 +34,12 @@ export function Luggage() {
     return (
       <>
         <Heading eyebrow="LUGGAGE STORAGE" title="Your luggage is with us." />
+        <LockerPolicy />
         <Button onPress={() => go("collect")}>Collect luggage</Button>
+        <Button secondary icon="plus" onPress={() => go("payment")}>
+          Add additional locker
+        </Button>
+        <AdditionalLockers />
       </>
     );
   if (s.bag === "reserved")
@@ -47,7 +53,12 @@ export function Luggage() {
             ["Drop-off", `${s.storageDay} · ${s.storageTime}`],
           ]}
         />
+        <LockerPolicy />
         <Button onPress={() => go("drop")}>Go to my locker</Button>
+        <Button secondary icon="plus" onPress={() => go("payment")}>
+          Add additional locker
+        </Button>
+        <AdditionalLockers />
         <Button
           secondary
           onPress={() => {
@@ -71,9 +82,9 @@ export function Luggage() {
               : "Store now. Settle in later."
         }
       >
-        One suitable locker per traveller. Choose your drop-off time, then check
-        availability.
+        Choose your drop-off time, then check availability.
       </Heading>
+      <LockerPolicy />
       {unavailable ? (
         <>
           <Notice error>
@@ -138,6 +149,9 @@ export function Luggage() {
             options={["Cabin bag", "Large suitcase", "Oversized item"]}
             onChange={setSize}
           />
+          <Button secondary icon="plus" onPress={() => go("payment")}>
+            Add additional locker
+          </Button>
           <Fine>
             Cabin bag: up to 55 × 40 × 25 cm. Large suitcase: up to 75 × 50 × 35
             cm.
@@ -149,7 +163,7 @@ export function Luggage() {
             onChange={setDay}
           />
           <Select
-            label="Drop-off time · Singapore time"
+            label="Drop-off time · London time"
             value={time}
             options={hours}
             onChange={setTime}
@@ -157,8 +171,8 @@ export function Luggage() {
           {size === "Oversized item" ? (
             <>
               <Notice>
-                For oversized items, please request help from the concierge.
-                No locker will be allocated.
+                For oversized items, please request help from the concierge. No
+                locker will be allocated.
               </Notice>
             </>
           ) : (
@@ -175,10 +189,19 @@ export function Luggage() {
           )}
         </>
       )}
+      <AdditionalLockers />
       <Fine>
-        Storage is available 24/7, Singapore time. Strictly one locker per
-        traveller. No collection time is needed.
+        Storage is available 24/7, London time. No collection time is needed.
       </Fine>
+    </>
+  );
+}
+function LockerPolicy() {
+  return (
+    <>
+      <Notice>Each guest is entitled to one complimentary locker only.</Notice>
+      <Fine>Locker dimensions: 87 cm × 68 cm × 40 cm.</Fine>
+      <Fine>Additional lockers cost £15 each.</Fine>
     </>
   );
 }
