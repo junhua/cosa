@@ -1,43 +1,74 @@
-# Cōsa · React Native
+# Cōsa React Native guest app
 
-Expo SDK 57, React Native, TypeScript and Expo Router. Native components render on iOS, Android and web. No HTML prototype or simulated phone-frame runtime is embedded.
-
-## Design source
-
-Reviewed the existing `design/Cosa-Prototype-Local` prototype in the original repository checkout. Those untracked files were absent from this worktree. Current `source/src/Prototype.tsx`, `source/src/prototype.css` and the latest refinements in `source/AGENTS.md` take precedence over outdated Alex / arrival-QR screenshots and README journeys. The current reference is saved in `qa/reference-iphone.jpg`.
-
-Preserved ivory / forest / sage colors, DM Serif Display and DM Sans, Phosphor icons, the original Stay Pass background, Mina's fictional booking, fully online arrival and Hotel navigation. The original artwork and demo luggage QR are copied locally into `assets/cosa/`.
-
-## Scope
-
-- Landing screen with scrollable services and persistent Stay / Hotel / Concierge tabs.
-- Six-language landing copy and navigation. Supporting details disclose English fallback.
-- Local pre-check-in sheet: sample image selection, preview, replace/remove, type/size checks, booking consent, then demo online arrival. No identity verification or server upload.
-- Small luggage demonstration: size/day/hour selection, one sample locker, door confirmation before locking, demo QR unlocking, collection and release. No real availability, camera scanning, hardware integration or payments.
-- Supporting hotel directions, housekeeping and shower-status demonstrations, plus scripted concierge replies.
-- Café entry is informational; multi-item ordering and the full prototype's recovery / checkout flows are outside this landing-page implementation.
-
-State is in memory and resets on reload. Identity images are never persisted. Sample stay dates remain 23–26 Sep 2026 as supplied by the design.
+Expo SDK 57, React Native 0.86, strict TypeScript and Expo Router. The same native screens run on iOS, Android and React Native Web.
 
 ## Run
 
-```powershell
+From `mobile/`:
+
+```sh
 npm ci
-npm run start   # Expo Go / development device
-npm run web     # browser preview
+npm run web
+# Or start for a compatible Expo Go app / development build:
+npm start
 ```
 
-On Windows, an iOS simulator is unavailable; use a physical device or build on macOS. Native bundle export confirms bundling, not device execution.
+The browser preview is at http://localhost:8081/. Native simulator/device builds require the relevant Expo development environment; iOS simulator builds require macOS. No credentials or environment variables are required for the local flow.
+
+## Implemented workflow
+
+- Stay Pass and the prototype's Stay / Hotel / Concierge navigation.
+- Pre-check-in: eleven arrival windows, booking confirmation, passport/NRIC photo choice, JPG/PNG/WebP size and decode validation (10 MB maximum), temporary preview, replace/remove, saved review, arrival confirmation and room access.
+- Room readiness updates automatically. The key requires completed arrival and a ready room; checkout ends access.
+- Luggage: size, day and hour selection, local inventory availability, alternative slots, oversized-item help, one assigned locker per traveller, closed-door deposit, the same QR for collection, optional relocking to continue storage, and release only after all bags are removed and the empty door is closed. Stored luggage remains accessible after checkout.
+- Hotel directions, shower availability by period, housekeeping with preferred times/notes and cancellation, plus separate hotel information, Wi-Fi password copying and saved service requests.
+- Café: category tabs, quantities across categories, editable basket, totals, order preparation, automatic readiness, pickup QR, collection confirmation and another order.
+- Reviewed checkout, confirmation, persisted feedback, post-stay help, and local concierge guidance with saved conversations.
+- Six languages for navigation and key stay copy; supporting services use English fallback.
+
+Guest-facing demo labels, scenario selectors, restart controls, artificial failures and manual staff-status buttons have been removed.
+
+## Local service boundary
+
+The user explicitly selected a **clean local guest flow**. This app does not contact a live hotel, identity service, staff, payment processor or AI provider, and does not control physical doors or lockers. The booking is fixed to Mina / CSA-0913 / 23–26 September 2026, Room 201 / B12 and locker L08. QR artwork is retained from the design package and is not a production credential.
+
+Local status deadlines are persisted: room readiness two seconds after arrival, café readiness five minutes after ordering, and housekeeping completion thirty seconds after requesting. The reducer advances due updates on hydration and every second while mounted. Production integration should replace these schedules and the fixed inventory provider with server-owned statuses and real access credentials.
+
+## Persistence and document handling
+
+Native uses AsyncStorage; web uses tab-scoped sessionStorage under `cosa-guest-v3`. Existing `cosa-demo-v2` sessions are migrated if a new session is absent. The allow-list restore excludes document paths and unknown fields, normalizes older luggage/orders, and preserves deadlines, requests, conversations and feedback. Native writes are serialized. Storage errors are displayed.
+
+Document photo URIs never enter saved stay state. Browser blob URLs are revoked and native cache copies deleted on replace, remove or leaving the form. The original selected file is untouched. An abrupt OS termination can leave an OS-managed cache copy until eviction. The local flow does not verify identity.
 
 ## Validation
 
-```powershell
-npm run typecheck
+```sh
 npm run lint
-npx expo-doctor
+npm run typecheck
+npm test
 npm run build
-npx expo export --platform android --output-dir dist-android
-npx expo export --platform ios --output-dir dist-ios
+npm run build:bundles
+# Optional browser regression suite:
+npx playwright install chromium
+npm run test:e2e
 ```
 
-See `design-qa.md` and `qa/` for browser interactions and visual evidence. Native device testing remains outstanding.
+Nine reducer tests cover access, luggage and checkout guards, orders, deadline restoration, availability, housekeeping, feedback and continued storage. The updated Playwright regression specifications cover clean check-in, checkout/collection, café scheduling and hotel requests. They were authored and typechecked in this revision; interactive browser verification was performed through the in-app browser instead of rerunning the CLI suite.
+
+Web production export and iOS/Android/web JavaScript exports pass. `build:bundles` uses `--no-bytecode` because the earlier Windows Hermes export reported `spawn UNKNOWN`; this is a bundle check, not a signed APK/IPA or native-device test. Physical device behavior and release Hermes compilation remain unverified.
+
+See `qa/validation.md` for current evidence and `design-qa.md` for the source comparison.
+
+## Design and code
+
+Reviewed the local `design/Cosa-Prototype-Local` instructions, implementation, styles and assets in the primary checkout, then inspected the linked live prototype through its main guest journeys. This worktree initially contained only README; the React Native implementation lives in `mobile/` and does not modify the Vite design prototype.
+
+- `src/app/`: Expo Router routes; `_layout.tsx` uses the shared application shell.
+- `App.tsx`: fonts, safe areas, route navigation, hydration, scheduled updates and language sheet.
+- `src/StayScreens.tsx`: Stay Pass, arrival, room, checkout and post-stay.
+- `src/LuggageScreens.tsx`: reservation, deposit, collection and relocking.
+- `src/ServiceScreens.tsx`: hotel information, directions, housekeeping, café and concierge.
+- `src/IdentityPhoto.tsx`: temporary photo validation and lifecycle.
+- `src/stay.ts`: typed state transitions, guards, totals and restoration.
+- `src/localAvailability.ts`: replaceable local locker inventory.
+- `src/components.tsx`, `src/i18n.ts`: native UI primitives and key-screen translations.

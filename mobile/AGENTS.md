@@ -39,3 +39,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Guest flow scope
+
+The user requested a clean local guest flow matching the linked Cōsa prototype (October 2026). Remove guest-facing demo labels, scenario selectors, reset controls, and manual staff-status buttons. Use persisted local state and scheduled status updates. Live hotel, identity, hardware, payments, and support integrations are outside this authorized scope; describe that in developer documentation, not repeated UI banners.

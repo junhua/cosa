@@ -1,11 +1,5 @@
 # Cōsa
 
-React Native implementation of the Cōsa guest landing screen lives in `mobile/`.
+The React Native guest app is in [mobile](mobile/README.md). It follows the Cōsa prototype's check-in, room, luggage, hotel services, café, concierge and checkout workflows with guest-facing demo controls removed.
 
-```powershell
-cd mobile
-npm ci
-npm run start
-```
-
-Use Expo Go for a device preview, or `npm run web` for the browser preview. See `mobile/README.md` for design sources, scope and validation.
+See the mobile README for setup, validation and the local service boundary.
