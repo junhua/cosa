@@ -1,6 +1,7 @@
 import * as Clipboard from "expo-clipboard";
 import React, { useState } from "react";
 import {
+  Image,
   Keyboard,
   Pressable,
   StyleSheet,
@@ -28,6 +29,11 @@ const directions = [
   {
     name: "My capsule · Room 201 / B12",
     floor: "Level 2",
+    images: [
+      require("../assets/directions/lift.jpg"),
+      require("../assets/directions/corridor.jpg"),
+      require("../assets/directions/capsule.jpg"),
+    ],
     steps: [
       "Take the lift to Level 2.",
       "Turn left and follow the Room 201 sign.",
@@ -37,6 +43,11 @@ const directions = [
   {
     name: "Luggage lockers · L08",
     floor: "Level 1",
+    images: [
+      require("../assets/directions/entrance.jpg"),
+      require("../assets/directions/lockers.jpg"),
+      require("../assets/directions/lockers.jpg"),
+    ],
     steps: [
       "Stay on the ground floor.",
       "From the main entrance, turn left into the luggage room.",
@@ -46,6 +57,11 @@ const directions = [
   {
     name: "Showers · S03",
     floor: "Level 2",
+    images: [
+      require("../assets/directions/lift.jpg"),
+      require("../assets/directions/corridor.jpg"),
+      require("../assets/directions/showers.jpg"),
+    ],
     steps: [
       "Take the lift to Level 2.",
       "Turn right towards the lounge.",
@@ -55,6 +71,11 @@ const directions = [
   {
     name: "Laundry · W02",
     floor: "Level 1",
+    images: [
+      require("../assets/directions/entrance.jpg"),
+      require("../assets/directions/entrance.jpg"),
+      require("../assets/directions/laundry.jpg"),
+    ],
     steps: [
       "Stay on the ground floor.",
       "Pass the lift and follow the Laundry sign.",
@@ -64,6 +85,11 @@ const directions = [
   {
     name: "Toilets",
     floor: "Level 2",
+    images: [
+      require("../assets/directions/lift.jpg"),
+      require("../assets/directions/corridor.jpg"),
+      require("../assets/directions/toilets.jpg"),
+    ],
     steps: [
       "Take the lift to Level 2.",
       "Turn right towards the lounge.",
@@ -71,12 +97,31 @@ const directions = [
     ],
   },
   {
-    name: "Lounge & vending machine",
+    name: "Lounge",
     floor: "Level 2",
+    images: [
+      require("../assets/directions/lift.jpg"),
+      require("../assets/directions/corridor.jpg"),
+      require("../assets/directions/lounge.jpg"),
+    ],
     steps: [
       "Take the lift to Level 2.",
       "Turn right into the shared lounge.",
-      "The vending machine is beside the entrance.",
+      "Make yourself comfortable in the shared seating area.",
+    ],
+  },
+  {
+    name: "Vending machine",
+    floor: "Level 2",
+    images: [
+      require("../assets/directions/lift.jpg"),
+      require("../assets/directions/corridor.jpg"),
+      require("../assets/directions/vending.jpg"),
+    ],
+    steps: [
+      "Take the lift to Level 2.",
+      "Turn right towards the shared lounge.",
+      "Find the vending machine beside the lounge entrance.",
     ],
   },
 ];
@@ -95,15 +140,38 @@ export function Directions() {
         options={directions.map((item) => item.name)}
         onChange={setDestination}
       />
-      <View style={ui.card}>
-        <Icon name="map-pin" size={30} />
-        <SectionTitle>{d.name}</SectionTitle>
-        <Text style={ui.body}>{d.floor}</Text>
+      <View
+        style={[
+          ui.card,
+          { flexDirection: "row", alignItems: "center", gap: 16 },
+        ]}
+      >
+        <View style={styles.destinationIcon}>
+          <Icon name="map-pin" size={30} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Fine>DESTINATION</Fine>
+          <SectionTitle>{d.name}</SectionTitle>
+          <Text style={ui.body}>{d.floor}</Text>
+        </View>
       </View>
+      <Fine>
+        Illustrative images · follow hotel signage for the actual route.
+      </Fine>
       {d.steps.map((step, i) => (
-        <View key={step} style={styles.directionStep}>
-          <Text style={styles.stepNumber}>{i + 1}</Text>
-          <Text style={[ui.body, { flex: 1 }]}>{step}</Text>
+        <View key={step} style={styles.directionCard}>
+          <View style={styles.directionStep}>
+            <Text style={styles.stepNumber}>{i + 1}</Text>
+            <Text style={[ui.body, { flex: 1 }]}>{step}</Text>
+          </View>
+          <View style={styles.directionImageFrame}>
+            <Image
+              source={d.images[i]}
+              style={styles.directionImage}
+              resizeMode="contain"
+              accessibilityLabel={`${d.name}, step ${i + 1}: ${step} Illustrative hotel interior.`}
+            />
+          </View>
         </View>
       ))}
       {destination === directions[0].name && (
@@ -724,6 +792,28 @@ export function Concierge() {
   );
 }
 const styles = StyleSheet.create({
+  destinationIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.sage,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  directionCard: {
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderColor: colors.line,
+    marginBottom: 10,
+  },
+  directionImageFrame: {
+    width: "100%",
+    aspectRatio: 1.5,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: colors.sage,
+  },
+  directionImage: { width: "100%", height: "100%", position: "absolute" },
   directionStep: {
     flexDirection: "row",
     gap: 16,
@@ -731,14 +821,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   stepNumber: {
-    width: 30,
-    height: 30,
+    width: 44,
+    height: 44,
     textAlign: "center",
-    paddingTop: 5,
-    backgroundColor: colors.sage,
-    borderRadius: 15,
+    paddingTop: 9,
+    fontSize: 20,
+    backgroundColor: colors.forest,
+    borderRadius: 22,
     fontFamily: "DMSansMedium",
-    color: colors.forest,
+    color: colors.bg,
   },
   showerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   shower: { width: "48%", padding: 18, borderRadius: 12, gap: 8 },

@@ -1,5 +1,9 @@
 # Validation — clean local guest flow
 
+## Illustrated directions — 9 October 2026
+
+Added seven destination choices with three numbered image steps each, using ten JPEG assets (about 2.6 MB total). Reviewed all generated images for landmark and label consistency. The existing room/luggage action routes remain intact. Inspected all destination selections in the in-app browser, iPhone-size 393 × 852 step layout and Pixel-size 412 × 915 vending guide. Confirmed decoded images and no browser errors on the final guide. Fixed React Native Web intrinsic image height by constraining images within 3:2 frames. Captures: `qa/clean/directions-capsule-iphone.png`, `qa/clean/directions-vending-pixel.png`. Lint, typecheck and web/iOS/Android no-bytecode exports passed. Native device rendering remains unverified. Images are explicitly labeled illustrative; no real property photographs or route survey were supplied.
+
 ## Additional lockers and local payments
 
 Verified 7 October 2026: 13 reducer tests passed, typecheck and lint passed, and web/iOS/Android JavaScript exports passed with `--no-bytecode`. Payment tests cover GBP totals, duplicate purchase rejection, malformed receipts, inventory limits, receipt restoration, independent collection guards, checkout blocking and post-checkout access.
