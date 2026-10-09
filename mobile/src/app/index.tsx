@@ -1,1 +1,1 @@
-export { Home as default } from "../StayScreens";
+export { Hub as default } from "../HubScreens";

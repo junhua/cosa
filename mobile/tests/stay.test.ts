@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { createInactivitySession, inactivityLimit } from "../src/inactivity";
 import {
   initialStay,
   restoreStay,
@@ -9,6 +10,133 @@ import {
   hours,
   extraLockerIds,
 } from "../src/stay";
+
+test("food locker readiness, restoration and collection stay independent of luggage and café", () => {
+  const linked = { ...initialStay, foodLocker: null, bookingLinked: true };
+  assert.equal(reduce(linked, { type: "food-locker-unlock" }), linked);
+  assert.equal(
+    reduce(linked, {
+      type: "food-delivery-ready",
+      reference: " ",
+      lockerId: "F03",
+    }),
+    linked,
+  );
+  let s = reduce(linked, {
+    type: "food-delivery-ready",
+    reference: " ORDER-42 ",
+    lockerId: "F03",
+  });
+  assert.equal(s.foodLocker?.reference, "ORDER-42");
+  assert.equal(s.foodLocker?.status, "ready");
+  assert.equal(
+    reduce(s, {
+      type: "food-delivery-ready",
+      reference: "OTHER",
+      lockerId: "F03",
+    }),
+    s,
+  );
+  s = restoreStay(JSON.parse(JSON.stringify(s)));
+  assert.equal(s.foodLocker?.id, "F03");
+  assert.equal(s.bag, "none");
+  assert.equal(s.order, "none");
+  s = reduce(s, { type: "food-locker-unlock" });
+  assert.equal(
+    reduce(s, { type: "food-locker-finish", removed: false, closed: true }),
+    s,
+  );
+  assert.equal(
+    reduce(s, { type: "food-locker-finish", removed: true, closed: false }),
+    s,
+  );
+  assert.equal(reduce(s, { type: "food-locker-relock", closed: false }), s);
+  s = reduce(s, { type: "food-locker-relock", closed: true });
+  assert.equal(s.foodLocker?.status, "ready");
+  s = reduce(s, { type: "food-locker-unlock" });
+  s = reduce(s, { type: "food-locker-finish", removed: true, closed: true });
+  assert.equal(s.foodLocker?.status, "collected");
+  assert.equal(
+    restoreStay(JSON.parse(JSON.stringify(s))).foodLocker?.status,
+    "collected",
+  );
+  assert.equal(
+    restoreStay({
+      foodLocker: { id: "WRONG", reference: "X", status: "ready" },
+    }).foodLocker,
+    null,
+  );
+  assert.equal(restoreStay({}).foodLocker, null);
+  assert.equal(
+    reduce(s, {
+      type: "food-delivery-ready",
+      reference: "NEXT",
+      lockerId: "F03",
+    }).foodLocker?.status,
+    "ready",
+  );
+});
+
+test("inactivity expires once, active use extends the deadline and suspended timers cannot bypass it", () => {
+  let now = 0;
+  let scheduled: (() => void) | undefined;
+  let expired = 0;
+  const timer = createInactivitySession(
+    () => expired++,
+    inactivityLimit,
+    () => now,
+    (callback) => {
+      scheduled = callback;
+      return 1;
+    },
+    () => {
+      scheduled = undefined;
+    },
+  );
+  now = inactivityLimit - 1;
+  timer.activity();
+  now += inactivityLimit - 1;
+  timer.check();
+  assert.equal(expired, 0);
+  now++;
+  scheduled?.();
+  assert.equal(expired, 1);
+  timer.check();
+  assert.equal(expired, 1);
+  timer.activity();
+  now += inactivityLimit + 1;
+  timer.activity();
+  assert.equal(expired, 2);
+  timer.stop();
+  now += inactivityLimit;
+  timer.check();
+  assert.equal(expired, 2);
+});
+
+test("leaving the guest area closes entry while preserving saved locker receipts and stay progress", () => {
+  const paid = reduce(
+    { ...initialStay, bookingLinked: true, arrived: true, prechecked: true },
+    {
+      type: "pay-lockers",
+      id: "LP-timeout",
+      quantity: 1,
+      day: "23 Sep",
+      time: "10:00",
+      now: 1000,
+    },
+  );
+  const closed = reduce(paid, { type: "leave-guest" });
+  assert.equal(closed.bookingLinked, false);
+  assert.equal(closed.arrived, true);
+  assert.deepEqual(closed.lockerPayments, paid.lockerPayments);
+  assert.deepEqual(closed.additionalLockers, paid.additionalLockers);
+  const reopened = reduce(closed, {
+    type: "link-booking",
+    reference: "CSA-0913",
+  });
+  assert.equal(reopened.bookingLinked, true);
+  assert.equal(reopened.arrived, true);
+});
 test("room key requires arrival, readiness, and an active stay", () => {
   assert.equal(reduce(initialStay, { type: "room-key" }).unlocked, false);
   assert.equal(reduce(initialStay, { type: "arrive" }).arrived, false);

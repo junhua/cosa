@@ -2,7 +2,13 @@ import React from "react";
 import { Image, Text, View } from "react-native";
 import { colors, Row, ui } from "./components";
 import { useCosa } from "./context";
-export function QR({ food = false }: { food?: boolean }) {
+export function QR({
+  food = false,
+  foodLocker = false,
+}: {
+  food?: boolean;
+  foodLocker?: boolean;
+}) {
   return (
     <View
       style={{
@@ -16,17 +22,25 @@ export function QR({ food = false }: { food?: boolean }) {
     >
       <Image
         accessibilityLabel={
-          food ? "Café pickup QR" : "Luggage lock and unlock QR"
+          foodLocker
+            ? "Food locker collection QR"
+            : food
+              ? "Café pickup QR"
+              : "Luggage lock and unlock QR"
         }
         source={
-          food
+          food || foodLocker
             ? require("../assets/cosa/qr-food.png")
             : require("../assets/cosa/qr-collection.png")
         }
         style={{ width: 170, height: 170, borderRadius: 12 }}
       />
       <Text style={ui.body}>
-        {food ? "One order · one pickup QR" : "Luggage QR · lock & unlock"}
+        {foodLocker
+          ? "Food locker QR · unlock to collect"
+          : food
+            ? "One order · one pickup QR"
+            : "Luggage QR · lock & unlock"}
       </Text>
     </View>
   );

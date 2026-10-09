@@ -185,9 +185,7 @@ export function Directions() {
   );
 }
 export function Hotel() {
-  const { go } = useCosa();
-  const [period, setPeriod] = useState("Daytime · 10am–6pm");
-  const peak = !period.startsWith("Daytime");
+  const { s, go } = useCosa();
   return (
     <>
       <Heading
@@ -196,6 +194,16 @@ export function Hotel() {
       >
         A little guidance. A little care. Everything for a comfortable stay.
       </Heading>
+      <Row
+        icon="package"
+        title="Food collection lockers"
+        detail={
+          s.foodLocker?.status === "ready"
+            ? `Food ready · locker ${s.foodLocker.id} · Level 1`
+            : "View your assigned locker · external deliveries"
+        }
+        onPress={() => go("food-lockers")}
+      />
       <Row
         icon="compass"
         title="Directions"
@@ -208,6 +216,32 @@ export function Hotel() {
         detail="Capsule cleaning, towels, bedding & rubbish"
         onPress={() => go("housekeeping")}
       />
+      <Row
+        icon="droplet"
+        title="Shower availability"
+        detail="View cubicle availability · no reservation needed"
+        onPress={() => go("showers")}
+      />
+      <SectionTitle>Stay essentials</SectionTitle>
+      <Summary
+        rows={[
+          ["Wi-Fi", "Cosa Guest"],
+          ["Password", "StayAtCosa"],
+          ["Front desk", "Level 1 · main entrance"],
+        ]}
+      />
+      <Help />
+    </>
+  );
+}
+export function Showers() {
+  const [period, setPeriod] = useState("Daytime · 10am–6pm");
+  const peak = !period.startsWith("Daytime");
+  return (
+    <>
+      <Heading eyebrow="SHOWER AVAILABILITY" title="Freshen up, at your pace.">
+        Check availability before heading to the Level 2 showers.
+      </Heading>
       <SectionTitle>Shower availability</SectionTitle>
       <Select
         label="Time of day"
@@ -249,14 +283,6 @@ export function Hotel() {
         ))}
       </View>
       <Fine>Follow availability signs at the shower area.</Fine>
-      <SectionTitle>Stay essentials</SectionTitle>
-      <Summary
-        rows={[
-          ["Wi-Fi", "Cosa Guest"],
-          ["Password", "StayAtCosa"],
-          ["Front desk", "Level 1 · main entrance"],
-        ]}
-      />
       <Help />
     </>
   );
@@ -487,6 +513,64 @@ export function Housekeeping() {
   );
 }
 export function Food() {
+  const [section, setSection] = useState<"coffee" | "external">("coffee");
+  return (
+    <>
+      <View
+        style={styles.foodTabs}
+        accessibilityLabel="Food & delivery options"
+      >
+        {(
+          [
+            ["coffee", "Cosa coffee bar"],
+            ["external", "External party"],
+          ] as const
+        ).map(([value, label]) => (
+          <Pressable
+            key={value}
+            accessibilityRole="tab"
+            accessibilityLabel={label}
+            accessibilityState={{ selected: section === value }}
+            onPress={() => setSection(value)}
+            style={[
+              styles.foodTab,
+              section === value && { backgroundColor: colors.forest },
+            ]}
+          >
+            <Text
+              style={[
+                styles.foodTabText,
+                section === value && { color: colors.bg },
+              ]}
+            >
+              {label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={section !== "coffee" && { display: "none" }}>
+        <CoffeeBar />
+      </View>
+      {section === "external" && (
+        <>
+          <Heading
+            eyebrow="EXTERNAL PARTY"
+            title="A taste of the neighbourhood."
+          />
+          <View style={styles.externalComingSoon}>
+            <Icon name="map-pin" size={30} />
+            <Text style={ui.h2}>Coming soon</Text>
+            <Text style={[ui.body, { color: colors.muted }]}>
+              Discover and connect with nearby food places within 1 km of Cōsa —
+              coming soon.
+            </Text>
+          </View>
+        </>
+      )}
+    </>
+  );
+}
+function CoffeeBar() {
   const { s, dispatch } = useCosa();
   const [category, setCategory] = useState("Coffee"),
     [review, setReview] = useState(false);
@@ -792,6 +876,40 @@ export function Concierge() {
   );
 }
 const styles = StyleSheet.create({
+  foodTabs: {
+    flexDirection: "row",
+    backgroundColor: colors.sage,
+    borderRadius: 16,
+    padding: 5,
+    gap: 5,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  foodTab: {
+    flex: 1,
+    minHeight: 54,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+  },
+  foodTabText: {
+    fontFamily: "DMSansMedium",
+    fontSize: 15,
+    color: colors.forest,
+    textAlign: "center",
+  },
+  externalComingSoon: {
+    backgroundColor: colors.sage,
+    padding: 28,
+    gap: 18,
+    marginVertical: 24,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
   destinationIcon: {
     width: 60,
     height: 60,

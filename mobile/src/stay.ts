@@ -40,6 +40,12 @@ export type LockerPayment = {
   lockerIds: string[];
 };
 export type Stay = {
+  foodLocker: {
+    id: "F03";
+    reference: string;
+    status: "reserved" | "ready" | "released" | "collected";
+    readyAt: number | null;
+  } | null;
   additionalLockers: ExtraLocker[];
   lockerPayments: LockerPayment[];
   bookingLinked: boolean;
@@ -76,6 +82,13 @@ export type Stay = {
   }[];
 };
 export const initialStay: Stay = {
+  // Local booking fixture represents a delivery already assigned by the hotel.
+  foodLocker: {
+    id: "F03",
+    reference: "EXT-204",
+    status: "ready",
+    readyAt: null,
+  },
   additionalLockers: [],
   lockerPayments: [],
   bookingLinked: false,
@@ -189,6 +202,27 @@ export function restoreStay(value: unknown): Stay {
   if (!value || typeof value !== "object") return { ...initialStay };
   const old = value as Record<string, unknown>;
   const s = { ...initialStay };
+  s.foodLocker = null;
+  const foodLocker = old.foodLocker as Stay["foodLocker"];
+  if (
+    foodLocker?.id === "F03" &&
+    typeof foodLocker.reference === "string" &&
+    foodLocker.reference.trim().length > 0 &&
+    foodLocker.reference.length <= 80 &&
+    ["reserved", "ready", "released", "collected"].includes(foodLocker.status)
+  )
+    s.foodLocker = {
+      id: "F03",
+      reference: foodLocker.reference.trim(),
+      status: foodLocker.status,
+      readyAt:
+        foodLocker.status === "reserved"
+          ? typeof foodLocker.readyAt === "number" &&
+            Number.isFinite(foodLocker.readyAt)
+            ? foodLocker.readyAt
+            : Date.now() + 30_000
+          : null,
+    };
   for (const key of [
     "prechecked",
     "arrived",
@@ -354,6 +388,7 @@ export function restoreStay(value: unknown): Stay {
 }
 export type Action =
   | { type: "link-booking"; reference: string }
+  | { type: "leave-guest" }
   | {
       type: "pay-lockers";
       id: string;
@@ -385,6 +420,10 @@ export type Action =
   | { type: "order"; now?: number }
   | { type: "order-ready" }
   | { type: "order-collected" }
+  | { type: "food-delivery-ready"; reference: string; lockerId: "F03" }
+  | { type: "food-locker-unlock" }
+  | { type: "food-locker-relock"; closed: boolean }
+  | { type: "food-locker-finish"; removed: boolean; closed: boolean }
   | { type: "new-order" }
   | { type: "housekeeping"; request: Housekeeping }
   | { type: "sync"; now: number }
@@ -394,6 +433,39 @@ export type Action =
   | { type: "reset" };
 export function stayReducer(s: Stay, a: Action): Stay {
   switch (a.type) {
+    // Delivery assignment is a hotel/provider event, never a guest reservation.
+    case "food-delivery-ready": {
+      const reference = a.reference.trim();
+      return a.lockerId === "F03" &&
+        reference.length > 0 &&
+        reference.length <= 80 &&
+        (!s.foodLocker || s.foodLocker.status === "collected")
+        ? {
+            ...s,
+            foodLocker: {
+              id: a.lockerId,
+              reference,
+              status: "ready",
+              readyAt: null,
+            },
+          }
+        : s;
+    }
+    case "food-locker-unlock":
+      return s.bookingLinked && s.foodLocker?.status === "ready"
+        ? { ...s, foodLocker: { ...s.foodLocker, status: "released" } }
+        : s;
+    case "food-locker-relock":
+      return s.bookingLinked && s.foodLocker?.status === "released" && a.closed
+        ? { ...s, foodLocker: { ...s.foodLocker, status: "ready" } }
+        : s;
+    case "food-locker-finish":
+      return s.bookingLinked &&
+        s.foodLocker?.status === "released" &&
+        a.removed &&
+        a.closed
+        ? { ...s, foodLocker: { ...s.foodLocker, status: "collected" } }
+        : s;
     case "pay-lockers": {
       const available = extraLockerIds.filter(
         (id) =>
@@ -467,6 +539,8 @@ export function stayReducer(s: Stay, a: Action): Stay {
             ),
           };
     }
+    case "leave-guest":
+      return { ...s, bookingLinked: false };
     case "link-booking":
       return matchesBookingReference(a.reference)
         ? { ...s, bookingLinked: true }
@@ -590,6 +664,15 @@ export function stayReducer(s: Stay, a: Action): Stay {
         : s;
     case "sync": {
       let next = s;
+      if (
+        s.foodLocker?.status === "reserved" &&
+        s.foodLocker.readyAt !== null &&
+        a.now >= s.foodLocker.readyAt
+      )
+        next = {
+          ...next,
+          foodLocker: { ...s.foodLocker, status: "ready", readyAt: null },
+        };
       if (
         s.arrived &&
         !s.departed &&

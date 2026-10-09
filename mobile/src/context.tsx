@@ -2,6 +2,8 @@ import React, { createContext, useContext } from "react";
 import { Action, Stay } from "./stay";
 import { TextKey } from "./i18n";
 export type Page =
+  | "hub"
+  | "public"
   | "booking"
   | "home"
   | "arrival"
@@ -14,12 +16,16 @@ export type Page =
   | "checkout"
   | "beyond"
   | "hotel"
+  | "food-lockers"
+  | "showers"
   | "directions"
   | "housekeeping"
   | "services"
   | "food"
   | "concierge";
 export const titles: Record<Page, string> = {
+  hub: "CosaHub",
+  public: "Public",
   booking: "Find your stay",
   home: "My stay",
   arrival: "Your arrival",
@@ -32,6 +38,8 @@ export const titles: Record<Page, string> = {
   checkout: "Check out",
   beyond: "Beyond stay",
   hotel: "Hotel services",
+  "food-lockers": "Food collection lockers",
+  showers: "Shower availability",
   directions: "Hotel directions",
   housekeeping: "Housekeeping",
   services: "Hotel information & help",

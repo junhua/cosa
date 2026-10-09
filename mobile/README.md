@@ -17,7 +17,9 @@ The browser preview is at http://localhost:8081/. Native simulator/device builds
 
 ## Booking entry
 
-Fresh guests enter their reference booking ID, see a brief branded loading screen, then reach the welcome page. The local booking reference is **CSA-0913** (case-insensitive; spaces and hyphens are tolerated). Unknown references show a retry message. Linked bookings persist for the current web tab/native session; guest routes redirect unlinked sessions to `/booking`. Previously checked-in local stays retain their progress during migration. This is local lookup, not authentication or a live booking API.
+The opening page shows the CosaHub name, supplied logo and vertically stacked Staying guest / Public choices. Public shows the coming-soon page. Staying guest opens reference booking entry, followed by a brief lookup transition and the welcome page at `/stay`. The local reference is **CSA-0913** (case-insensitive; spaces and hyphens are tolerated). Unknown references show a retry message. Cold starts, reloads and five minutes without interaction return to the CosaHub opening page; entering the guest area requires the reference again. Saved stay progress, luggage assignments and receipts remain intact. Guest-route deep links are gated by the current entry session. This is local lookup, not authentication or a live booking API.
+
+Inactivity uses a wall-clock deadline, native AppState resume checks and web visibility/focus checks so suspended timers cannot extend the session. Touches and scrolling count as native activity; web typing, scrolling and pointer interaction count as activity. Expiry closes the guest gate, dismisses the keyboard and language sheet, and remounts the current screen to dispose temporary form/photo state. The timeout is configured in `src/inactivity.ts`.
 
 ## Implemented workflow
 
@@ -25,7 +27,7 @@ Fresh guests enter their reference booking ID, see a brief branded loading scree
 - Pre-check-in: eleven arrival windows, booking confirmation, passport/NRIC photo choice, JPG/PNG/WebP size and decode validation (10 MB maximum), temporary preview, replace/remove, saved review, arrival confirmation and room access.
 - Room readiness updates automatically. The key requires completed arrival and a ready room; checkout ends access.
 - Luggage: size, day and hour selection, local inventory availability, alternative slots, oversized-item help, one complimentary locker per guest, 87 × 68 × 40 cm dimensions, £15 additional lockers with independent deposit and collection, closed-door deposit, the same QR for collection, optional relocking to continue storage, and release only after all bags are removed and the empty door is closed. Stored luggage remains accessible after checkout.
-- Hotel directions, shower availability by period, housekeeping with preferred times/notes and cancellation, plus separate hotel information, Wi-Fi password copying and saved service requests.
+- Hotel sections for food collection lockers, directions, shower availability by period, housekeeping with preferred times/notes and cancellation, plus separate hotel information, Wi-Fi password copying and saved service requests.
 - Directions include three numbered image steps for capsule rooms, luggage lockers, showers, laundry, toilets, lounge and vending machine. Ten bundled illustrative hotel images use the warm oak/ivory design; image descriptions support screen readers. These generated interiors are examples, and actual hotel signage remains the route authority. Source prompts are in `assets/directions/PROMPTS.md`.
 - Café: category tabs, quantities across categories, editable basket, totals, order preparation, automatic readiness, pickup QR, collection confirmation and another order.
 - Reviewed checkout, confirmation, persisted feedback, post-stay help, and local concierge guidance with saved conversations.
@@ -60,7 +62,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Thirteen reducer tests cover local payment totals and saved receipts, duplicate purchases, paid locker collection, inventory limits, access, luggage and checkout guards, orders, deadline restoration, availability, housekeeping, feedback, continued storage and booking-reference validation. The updated Playwright regression specifications cover clean check-in, checkout/collection, café scheduling and hotel requests. They were authored and typechecked in this revision; interactive browser verification was performed through the in-app browser instead of rerunning the CLI suite.
+Sixteen reducer/timer tests cover food locker readiness and guarded collection, inactivity deadlines and saved progress on guest-area exit, local payment totals and saved receipts, duplicate purchases, paid locker collection, inventory limits, access, luggage and checkout guards, orders, deadline restoration, availability, housekeeping, feedback, continued storage and booking-reference validation. The updated Playwright regression specifications cover clean check-in, checkout/collection, café scheduling and hotel requests. They were authored and typechecked in this revision; interactive browser verification was performed through the in-app browser instead of rerunning the CLI suite.
 
 Web production export and iOS/Android/web JavaScript exports pass. `build:bundles` uses `--no-bytecode` because the earlier Windows Hermes export reported `spawn UNKNOWN`; this is a bundle check, not a signed APK/IPA or native-device test. Physical device behavior and release Hermes compilation remain unverified.
 
@@ -80,3 +82,11 @@ Reviewed the local `design/Cosa-Prototype-Local` instructions, implementation, s
 - `src/localAvailability.ts`: replaceable local locker inventory.
 - `src/components.tsx`, `src/i18n.ts`: native UI primitives and key-screen translations.
 
+
+## Food collection lockers
+
+Food lockers serve external-party food deliveries for collection and pickup only. Guests cannot reserve or cancel lockers, enter delivery references or choose an allocation. Cōsa Coffee Bar orders continue to use lobby pickup.
+
+Hotel opens `/food-lockers` above Directions; shower availability has its own `/showers` page. A hotel/provider delivery assignment supplies the reference and locker. The Stay page and Hotel shortcut show a ready-delivery notice, locker number and location. The pickup page shows the assigned locker prominently, dimensions 35 cm width × 40 cm depth × 20 cm height, QR-style unlock, re-lock and guarded collection confirmation. Completed collection and assignment records persist with the stay. No-delivery and already-collected states have no reservation controls.
+
+The fresh local Mina booking includes sample external delivery EXT-204, already assigned to F03 on Level 1. Saved empty or completed delivery records are preserved; opening the page does not create another delivery. The `food-delivery-ready` reducer event represents a future hotel/provider assignment and is not called by any guest control. Legacy pending locker records retain their scheduled local transition. This remains a local simulation: no delivery-provider updates, physical locks, signed QR access credentials or push notification service are connected. The ready notice is shown inside the app.

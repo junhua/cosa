@@ -30,7 +30,7 @@ export function BookingLoading({
 }
 
 export default function BookingScreen() {
-  const { dispatch } = useCosa();
+  const { dispatch, go } = useCosa();
   const [reference, setReference] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -90,6 +90,9 @@ export default function BookingScreen() {
       {!!error && <Notice error>{error}</Notice>}
       <Button disabled={!reference.trim()} icon="arrow-right" onPress={enter}>
         Continue to my stay
+      </Button>
+      <Button secondary onPress={() => go("hub")}>
+        Back to CosaHub
       </Button>
     </View>
   );

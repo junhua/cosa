@@ -39,6 +39,14 @@ export function Home() {
         <Icon name="calendar" size={17} />
         <Text style={ui.fine}>23–26 Sep 2026</Text>
       </View>
+      {s.foodLocker?.status === "ready" && (
+        <Row
+          icon="package"
+          title="Your food delivery is ready"
+          detail={`Collect from locker ${s.foodLocker.id} · Level 1`}
+          onPress={() => go("food-lockers")}
+        />
+      )}
       <ImageBackground
         source={require("../assets/cosa/pass-background.png")}
         imageStyle={{ borderRadius: 18 }}
@@ -234,8 +242,8 @@ export function Arrival() {
             }
           />
           <Fine>
-            Hourly windows · 1pm to midnight · London time. 12am means the
-            start of 24 Sep.
+            Hourly windows · 1pm to midnight · London time. 12am means the start
+            of 24 Sep.
           </Fine>
           <CheckBox
             checked={consent}

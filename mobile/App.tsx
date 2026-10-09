@@ -1,4 +1,10 @@
-import React, { useEffect, useReducer, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -30,6 +36,7 @@ import { translate, TextKey } from "./src/i18n";
 import { colors, Fine, Icon, Notice, Sheet, ui } from "./src/components";
 import { BookingLoading } from "./src/BookingScreen";
 import { Cosa, Page, titles } from "./src/context";
+import { useInactivity } from "./src/useInactivity";
 
 const storageKey = "cosa-guest-v3";
 const legacyStorageKey = "cosa-demo-v2";
@@ -70,7 +77,12 @@ function StayApp() {
     };
   }, []);
   if (!hydrated) return <BookingLoading message="Preparing your stay…" />;
-  return <HydratedApp initial={hydrated} initialStorageError={storageError} />;
+  return (
+    <HydratedApp
+      initial={{ ...hydrated, bookingLinked: false }}
+      initialStorageError={storageError}
+    />
+  );
 }
 function HydratedApp({
   initial,
@@ -82,18 +94,33 @@ function HydratedApp({
   const [s, dispatch] = useReducer(stayReducer, initial),
     [storageError, setStorageError] = useState(initialStorageError);
   const [languageSheet, setLanguageSheet] = useState(false),
-    [epoch] = useState(0);
+    [epoch, setEpoch] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
-  const path = pathname.split("/")[1] || "home";
-  const page: Page = path in titles ? (path as Page) : "home";
+  const path = pathname.split("/")[1] || "hub";
+  const page: Page =
+    path === "stay" ? "home" : path in titles ? (path as Page) : "hub";
+  const expire = useCallback(() => {
+    Keyboard.dismiss();
+    setLanguageSheet(false);
+    dispatch({ type: "leave-guest" });
+    setEpoch((value) => value + 1);
+    router.replace("/");
+  }, [router]);
+  const activity = useInactivity(expire);
   const scroll = useRef<ScrollView>(null),
     persistence = useRef(Promise.resolve());
   const t = (key: TextKey) => translate(s.language, key);
   function go(destination: Page) {
     Keyboard.dismiss();
     if (page !== destination)
-      router.push(destination === "home" ? "/" : `/${destination}`);
+      router.push(
+        destination === "hub"
+          ? "/"
+          : destination === "home"
+            ? "/stay"
+            : `/${destination}`,
+      );
   }
   function back() {
     Keyboard.dismiss();
@@ -102,7 +129,7 @@ function HydratedApp({
   }
   function tab(destination: Page) {
     Keyboard.dismiss();
-    router.replace(destination === "home" ? "/" : `/${destination}`);
+    router.replace(destination === "home" ? "/stay" : `/${destination}`);
   }
   useEffect(() => {
     scroll.current?.scrollTo({ y: 0, animated: false });
@@ -138,11 +165,14 @@ function HydratedApp({
     });
   }, [s]);
   useEffect(() => {
-    if (!s.bookingLinked && page !== "booking") router.replace("/booking");
-    else if (s.bookingLinked && page === "booking") router.replace("/");
+    if (!s.bookingLinked && !["hub", "public", "booking"].includes(page))
+      router.replace("/");
+    else if (s.bookingLinked && page === "booking") router.replace("/stay");
   }, [s.bookingLinked, page, router]);
-  const guestShell = s.bookingLinked && page !== "booking";
-  const redirecting = !s.bookingLinked && page !== "booking";
+  const guestShell =
+    s.bookingLinked && !["hub", "public", "booking"].includes(page);
+  const redirecting =
+    !s.bookingLinked && !["hub", "public", "booking"].includes(page);
   const title =
     page === "arrival"
       ? t("checkin")
@@ -155,7 +185,7 @@ function HydratedApp({
     <Cosa.Provider value={{ s, dispatch, go, t }}>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <StatusBar style="dark" />
-        <View style={styles.app}>
+        <View style={styles.app} onTouchStart={activity} onTouchMove={activity}>
           {guestShell && (
             <View style={styles.header}>
               {page === "home" ? (
@@ -201,6 +231,7 @@ function HydratedApp({
               ]}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
+              onScrollBeginDrag={activity}
             >
               {!!storageError && <Notice error>{storageError}</Notice>}
               {redirecting && <BookingLoading message="Preparing your stay…" />}
@@ -236,10 +267,18 @@ function HydratedApp({
                         "hotel",
                         "directions",
                         "housekeeping",
+                        "food-lockers",
+                        "showers",
                         "concierge",
                       ].includes(page)
                     : item.page === "hotel"
-                      ? ["hotel", "directions", "housekeeping"].includes(page)
+                      ? [
+                          "hotel",
+                          "directions",
+                          "housekeeping",
+                          "food-lockers",
+                          "showers",
+                        ].includes(page)
                       : page === "concierge";
                 return (
                   <Pressable

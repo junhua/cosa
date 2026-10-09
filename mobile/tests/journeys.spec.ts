@@ -12,6 +12,16 @@ async function start(page: Page, state = initialStay) {
     { ...state, bookingLinked: true },
   );
   await page.goto("/");
+  await page.getByRole("tab", { name: "Staying guest", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Reference booking ID", exact: true })
+    .fill("CSA-0913");
+  await page
+    .getByRole("button", { name: "Continue to my stay", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Welcome, Mina.", exact: true }),
+  ).toBeVisible();
 }
 
 test("check-in requires consent and a readable photo, then room becomes ready automatically", async ({
@@ -201,6 +211,14 @@ test("booking gate protects guest routes and opens the welcome page after lookup
 }) => {
   await page.goto("/arrival");
   await expect(
+    page.getByRole("heading", { name: "cosahub", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: "Public", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "A little more Cōsa.", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: "Staying guest", exact: true }).click();
+  await expect(
     page.getByRole("heading", { name: "Find your stay." }),
   ).toBeVisible();
   await expect(
@@ -227,6 +245,21 @@ test("booking gate protects guest routes and opens the welcome page after lookup
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Welcome, Mina.", exact: true }),
+    page.getByRole("heading", { name: "cosahub", exact: true }),
   ).toBeVisible();
+});
+
+test("idle guest sessions return to CosaHub and require the reference again", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await start(page);
+  await page.clock.runFor(5 * 60 * 1000);
+  await expect(
+    page.getByRole("heading", { name: "cosahub", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: "Staying guest", exact: true }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Reference booking ID", exact: true }),
+  ).toHaveValue("");
 });
