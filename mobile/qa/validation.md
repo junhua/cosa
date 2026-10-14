@@ -1,5 +1,11 @@
 # Validation — clean local guest flow
 
+## Identity upload sources — 14 October 2026
+
+Added separate Upload file, Choose from photos and Take a photo controls to the NRIC/passport form. File selection keeps JPG/PNG/WebP filtering; photo/camera paths use Expo ImagePicker, accept readable native HEIC/HEIF images, and share the 10 MB validation, preview and temporary-file cleanup. Camera denial offers the other paths; no media-library permission is requested unnecessarily for image-only system selection. Camera/photo permission descriptions are configured and microphone permission is disabled.
+
+Lint, typecheck and web/iOS/Android no-bytecode exports passed. Existing upload journey selectors now target Upload file. These Playwright journeys were not executed in this revision. Native camera/library selection, permission denial and browser file dialogs still need interactive device verification; bundle success does not verify those OS interactions.
+
 ## Assigned food pickup only — 9 October 2026
 
 Supersedes the guest reservation flow below. Removed food order-reference entry, reservation/cancellation controls and guest reservation reducer actions. Assignment is represented by the hotel/provider `food-delivery-ready` event; no guest control dispatches it. A fresh local Mina session contains sample external delivery EXT-204 assigned to F03, Level 1. Saved empty/collected records remain unchanged. Existing legacy pending records retain their local readiness deadline. The Stay page and Hotel shortcut inform guests when food is ready; the collection page displays the locker prominently and retains guarded QR-style unlock/re-lock/finish actions. No external provider, physical locker or push service is connected.

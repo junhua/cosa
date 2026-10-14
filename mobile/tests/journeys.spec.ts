@@ -45,7 +45,7 @@ test("check-in requires consent and a readable photo, then room becomes ready au
     .click();
   let chooser = page.waitForEvent("filechooser");
   await page
-    .getByRole("button", { name: "Choose document photo", exact: true })
+    .getByRole("button", { name: "Upload file", exact: true })
     .click();
   await (
     await chooser
@@ -63,7 +63,7 @@ test("check-in requires consent and a readable photo, then room becomes ready au
   await expect(save).toBeDisabled();
   chooser = page.waitForEvent("filechooser");
   await page
-    .getByRole("button", { name: "Choose document photo", exact: true })
+    .getByRole("button", { name: "Upload file", exact: true })
     .click();
   await (await chooser).setFiles(path.resolve("assets/cosa/qr-collection.png"));
   await expect(page.getByText("Photo ready", { exact: true })).toBeVisible();

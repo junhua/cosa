@@ -27,7 +27,12 @@
     },
     "plugins": [
       "expo-font",
-      "expo-router"
+      "expo-router",
+      ["expo-image-picker", {
+        "photosPermission": "Choose an NRIC or passport photo for your check-in.",
+        "cameraPermission": "Take an NRIC or passport photo for your check-in.",
+        "microphonePermission": false
+      }]
     ]
   }
 }
