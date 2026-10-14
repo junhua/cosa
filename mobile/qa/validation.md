@@ -1,5 +1,17 @@
 # Validation — clean local guest flow
 
+## Welcome food status and placement — 14 October 2026
+
+Fresh/restarted sessions now start with no food delivery. The Welcome page always shows the external-delivery status row directly below Ask Cōsa; its default title is No food order yet. Ready and in-progress assignments still show the collection locker, while completed/pending states use their corresponding status. Restore discards the former EXT-204 sample fixture and retains other delivery records.
+
+All 17 state tests, lint, typecheck and web/iOS/Android no-bytecode exports passed. The new regression checks fresh/reset defaults and migration of the old sample without removing other orders. Interactive visual inspection was not performed in this revision.
+
+## Testing restart control — 14 October 2026
+
+At the user's request, added a development-only Restart test control on all screens, including CosaHub and booking entry. A confirmation offers Reset & start again and Keep current test. Reset dispatches the existing full state reset, remounts the route to dispose ephemeral identity images/forms, closes sheets and returns to CosaHub. Existing ordered persistence writes save the fresh state. Production exports omit the control via __DEV__.
+
+Lint, typecheck, all 16 state tests and web/iOS/Android no-bytecode exports passed. The live Expo tunnel returned HTTP 200 for the iPhone bundle containing the restart control and confirmation action. Physical-device interaction and visual layout were not verified in this revision.
+
 ## Identity upload sources — 14 October 2026
 
 Added separate Upload file, Choose from photos and Take a photo controls to the NRIC/passport form. File selection keeps JPG/PNG/WebP filtering; photo/camera paths use Expo ImagePicker, accept readable native HEIC/HEIF images, and share the 10 MB validation, preview and temporary-file cleanup. Camera denial offers the other paths; no media-library permission is requested unnecessarily for image-only system selection. Camera/photo permission descriptions are configured and microphone permission is disabled.

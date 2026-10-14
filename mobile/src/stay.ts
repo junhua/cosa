@@ -82,13 +82,7 @@ export type Stay = {
   }[];
 };
 export const initialStay: Stay = {
-  // Local booking fixture represents a delivery already assigned by the hotel.
-  foodLocker: {
-    id: "F03",
-    reference: "EXT-204",
-    status: "ready",
-    readyAt: null,
-  },
+  foodLocker: null,
   additionalLockers: [],
   lockerPayments: [],
   bookingLinked: false,
@@ -206,6 +200,7 @@ export function restoreStay(value: unknown): Stay {
   const foodLocker = old.foodLocker as Stay["foodLocker"];
   if (
     foodLocker?.id === "F03" &&
+    foodLocker.reference !== "EXT-204" &&
     typeof foodLocker.reference === "string" &&
     foodLocker.reference.trim().length > 0 &&
     foodLocker.reference.length <= 80 &&

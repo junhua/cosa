@@ -39,14 +39,6 @@ export function Home() {
         <Icon name="calendar" size={17} />
         <Text style={ui.fine}>23–26 Sep 2026</Text>
       </View>
-      {s.foodLocker?.status === "ready" && (
-        <Row
-          icon="package"
-          title="Your food delivery is ready"
-          detail={`Collect from locker ${s.foodLocker.id} · Level 1`}
-          onPress={() => go("food-lockers")}
-        />
-      )}
       <ImageBackground
         source={require("../assets/cosa/pass-background.png")}
         imageStyle={{ borderRadius: 18 }}
@@ -151,6 +143,26 @@ export function Home() {
         title="Ask Cōsa"
         detail="Digital help & hotel guidance"
         onPress={() => go("concierge")}
+      />
+      <Row
+        icon="package"
+        title={
+          !s.foodLocker
+            ? "No food order yet"
+            : s.foodLocker.status === "ready"
+              ? "Your food delivery is ready"
+              : s.foodLocker.status === "released"
+                ? "Food pickup in progress"
+                : s.foodLocker.status === "collected"
+                  ? "Food delivery collected"
+                  : "Awaiting your food delivery"
+        }
+        detail={
+          s.foodLocker && ["ready", "released"].includes(s.foodLocker.status)
+            ? `Collect from locker ${s.foodLocker.id} · Level 1`
+            : "External-party delivery & pickup"
+        }
+        onPress={() => go("food-lockers")}
       />
       <Fine>
         Stay reminder · Check-in from 14:00 on 23 Sep. Check-out by 11:00 on 26

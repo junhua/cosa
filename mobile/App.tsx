@@ -33,7 +33,15 @@ import {
   stayReducer,
 } from "./src/stay";
 import { translate, TextKey } from "./src/i18n";
-import { colors, Fine, Icon, Notice, Sheet, ui } from "./src/components";
+import {
+  Button,
+  colors,
+  Fine,
+  Icon,
+  Notice,
+  Sheet,
+  ui,
+} from "./src/components";
 import { BookingLoading } from "./src/BookingScreen";
 import { Cosa, Page, titles } from "./src/context";
 import { useInactivity } from "./src/useInactivity";
@@ -94,6 +102,7 @@ function HydratedApp({
   const [s, dispatch] = useReducer(stayReducer, initial),
     [storageError, setStorageError] = useState(initialStorageError);
   const [languageSheet, setLanguageSheet] = useState(false),
+    [resetSheet, setResetSheet] = useState(false),
     [epoch, setEpoch] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
@@ -103,6 +112,7 @@ function HydratedApp({
   const expire = useCallback(() => {
     Keyboard.dismiss();
     setLanguageSheet(false);
+    setResetSheet(false);
     dispatch({ type: "leave-guest" });
     setEpoch((value) => value + 1);
     router.replace("/");
@@ -248,6 +258,20 @@ function HydratedApp({
               </View>
             </ScrollView>
           </KeyboardAvoidingView>
+          {__DEV__ && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Restart test"
+              onPress={() => {
+                Keyboard.dismiss();
+                setResetSheet(true);
+              }}
+              style={styles.restart}
+            >
+              <Icon name="refresh-cw" size={16} />
+              <Text style={ui.fine}>Restart test</Text>
+            </Pressable>
+          )}
           {guestShell && (
             <View style={styles.nav}>
               {(
@@ -344,6 +368,32 @@ function HydratedApp({
           and document instructions use English fallback.
         </Fine>
       </Sheet>
+      <Sheet
+        visible={__DEV__ && resetSheet}
+        title="Start a fresh test?"
+        onClose={() => setResetSheet(false)}
+      >
+        <Text style={ui.body}>
+          Clear this device’s saved check-in, locker records, payment receipts,
+          orders and messages, then return to CosaHub to enter your booking
+          again.
+        </Text>
+        <Button
+          onPress={() => {
+            Keyboard.dismiss();
+            setResetSheet(false);
+            setLanguageSheet(false);
+            dispatch({ type: "reset" });
+            setEpoch((value) => value + 1);
+            router.replace("/");
+          }}
+        >
+          Reset & start again
+        </Button>
+        <Button secondary onPress={() => setResetSheet(false)}>
+          Keep current test
+        </Button>
+      </Sheet>
     </Cosa.Provider>
   );
 }
@@ -367,6 +417,15 @@ export default function App() {
   );
 }
 const styles = StyleSheet.create({
+  restart: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderTopWidth: 1,
+    borderColor: colors.line,
+  },
   safe: { flex: 1, backgroundColor: colors.bg },
   app: {
     flex: 1,

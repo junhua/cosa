@@ -11,6 +11,47 @@ import {
   extraLockerIds,
 } from "../src/stay";
 
+test("fresh and restarted sessions have no food order; old sample delivery is removed", () => {
+  assert.equal(initialStay.foodLocker, null);
+  assert.equal(
+    reduce(
+      {
+        ...initialStay,
+        foodLocker: {
+          id: "F03",
+          reference: "ORDER-42",
+          status: "ready",
+          readyAt: null,
+        },
+      },
+      { type: "reset" },
+    ).foodLocker,
+    null,
+  );
+  assert.equal(
+    restoreStay({
+      foodLocker: {
+        id: "F03",
+        reference: "EXT-204",
+        status: "ready",
+        readyAt: null,
+      },
+    }).foodLocker,
+    null,
+  );
+  assert.equal(
+    restoreStay({
+      foodLocker: {
+        id: "F03",
+        reference: "ORDER-42",
+        status: "ready",
+        readyAt: null,
+      },
+    }).foodLocker?.reference,
+    "ORDER-42",
+  );
+});
+
 test("food locker readiness, restoration and collection stay independent of luggage and café", () => {
   const linked = { ...initialStay, foodLocker: null, bookingLinked: true };
   assert.equal(reduce(linked, { type: "food-locker-unlock" }), linked);
