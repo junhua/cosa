@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   Image,
   Keyboard,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -25,6 +26,42 @@ import {
 import { Page, titles, useCosa } from "./context";
 import { menu, total } from "./stay";
 import { Help, QR } from "./shared";
+import { NeighbourhoodMap } from "./NeighbourhoodMap";
+const foodPlaces = [
+  {
+    name: "Din Tai Fung Centre Point",
+    latitude: 51.5162,
+    longitude: -0.1295,
+    area: "St Giles Square · Dumplings & noodles",
+    description:
+      "Dumplings, noodles and Taiwanese favourites for a comforting meal.",
+    image: require("../assets/food-places/noodles.jpg"),
+    imageDescription:
+      "Illustrative bowl of wonton noodle soup with leafy greens",
+  },
+  {
+    name: "Nando’s Soho",
+    latitude: 51.511,
+    longitude: -0.1369,
+    area: "Glasshouse Street · PERi-PERi chicken",
+    description:
+      "Flame-grilled PERi-PERi chicken and sides for an easy, hearty meal.",
+    image: require("../assets/food-places/chicken.jpg"),
+    imageDescription:
+      "Illustrative plate of grilled chicken, rice and chilli sauce",
+  },
+  {
+    name: "GAIL’s Soho",
+    latitude: 51.5142,
+    longitude: -0.1349,
+    area: "Wardour Street · Bakery & coffee",
+    description:
+      "Fresh pastries, sourdough and barista coffee for a slow morning.",
+    image: require("../assets/food-places/bakery.jpg"),
+    imageDescription:
+      "Illustrative croissant and cinnamon bun beside an iced latte",
+  },
+];
 const directions = [
   {
     name: "My capsule · Room 201 / B12",
@@ -514,6 +551,16 @@ export function Housekeeping() {
 }
 export function Food() {
   const [section, setSection] = useState<"coffee" | "external">("coffee");
+  const [selectedPlace, setSelectedPlace] = useState(0);
+  const [linkError, setLinkError] = useState("");
+  async function openPlace(url: string) {
+    setLinkError("");
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setLinkError("We couldn’t open that page. Please try again.");
+    }
+  }
   return (
     <>
       <View
@@ -554,17 +601,102 @@ export function Food() {
       {section === "external" && (
         <>
           <Heading
-            eyebrow="EXTERNAL PARTY"
+            eyebrow="LONDON · PICCADILLY CIRCUS"
             title="A taste of the neighbourhood."
-          />
-          <View style={styles.externalComingSoon}>
-            <Icon name="map-pin" size={30} />
-            <Text style={ui.h2}>Coming soon</Text>
-            <Text style={[ui.body, { color: colors.muted }]}>
-              Discover and connect with nearby food places within 1 km of Cōsa —
-              coming soon.
+          >
+            Explore a few London favourites within 1 km of Piccadilly Circus.
+          </Heading>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="5% guest discount offer preview. Continue to Uber Eats (external website)"
+            onPress={() =>
+              void openPlace("https://www.ubereats.com/gb/city/london-eng")
+            }
+            style={styles.discountBanner}
+          >
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountNumber}>5%</Text>
+              <Text style={styles.discountOff}>OFF</Text>
+            </View>
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={styles.discountTitle}>
+                A little treat for our guests.
+              </Text>
+              <Text style={styles.discountCopy}>
+                Order from here for 5% off your total bill.
+              </Text>
+              <Text style={styles.discountCopy}>
+                Offer preview · partner discount not yet active.
+              </Text>
+              <Text style={styles.discountCta}>Explore on Uber Eats ↗</Text>
+            </View>
+          </Pressable>
+          <View style={styles.mapHeading}>
+            <Text accessibilityRole="header" style={[ui.h2, { flex: 1 }]}>
+              Around Piccadilly Circus
             </Text>
+            <Text style={styles.mapCount}>3 places · 1 km</Text>
           </View>
+          <Fine>
+            Within 1 km of Piccadilly Circus. Venue pins are approximate.
+          </Fine>
+          {!!linkError && <Notice error>{linkError}</Notice>}
+          <NeighbourhoodMap
+            places={foodPlaces}
+            selected={selectedPlace}
+            onSelect={setSelectedPlace}
+            onOpen={(url) => void openPlace(url)}
+          />
+          <View
+            accessibilityLabel="Choose a food place"
+            style={styles.placeChoices}
+          >
+            {foodPlaces.map((place, index) => (
+              <Pressable
+                key={place.name}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selectedPlace === index }}
+                accessibilityLabel={`Select ${place.name}`}
+                onPress={() => setSelectedPlace(index)}
+                style={[
+                  styles.placeChoice,
+                  selectedPlace === index && styles.placeChoiceSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.placeChoiceText,
+                    selectedPlace === index && { color: colors.paper },
+                  ]}
+                >
+                  {index + 1} · {place.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {foodPlaces
+            .filter((_, index) => index === selectedPlace)
+            .map((place) => (
+              <View key={place.name} style={styles.foodPlace}>
+                <Image
+                  source={place.image}
+                  accessibilityLabel={place.imageDescription}
+                  resizeMode="cover"
+                  style={styles.foodPlaceImage}
+                />
+                <View style={styles.foodPlaceBody}>
+                  <Text accessibilityRole="header" style={ui.h2}>
+                    {place.name}
+                  </Text>
+                  <Text style={ui.eyebrow}>{place.area}</Text>
+                  <Text style={ui.body}>{place.description}</Text>
+                </View>
+              </View>
+            ))}
+          <Fine>
+            Food images are AI illustrations. Check menus, eligibility and
+            delivery availability with the provider before ordering.
+          </Fine>
         </>
       )}
     </>
@@ -901,15 +1033,83 @@ const styles = StyleSheet.create({
     color: colors.forest,
     textAlign: "center",
   },
-  externalComingSoon: {
-    backgroundColor: colors.sage,
-    padding: 28,
-    gap: 18,
-    marginVertical: 24,
-    borderRadius: 24,
+  foodPlace: {
+    backgroundColor: colors.paper,
+    marginTop: 20,
+    borderRadius: 20,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.line,
   },
+  discountBanner: {
+    backgroundColor: colors.forest,
+    borderRadius: 18,
+    padding: 18,
+    flexDirection: "row",
+    gap: 16,
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  discountBadge: {
+    width: 62,
+    height: 72,
+    borderRadius: 14,
+    backgroundColor: "#e3e9cf",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  discountNumber: { fontFamily: "DMSerif", fontSize: 30, color: colors.forest },
+  discountOff: { fontFamily: "DMSansBold", fontSize: 12, color: colors.forest },
+  discountTitle: {
+    fontFamily: "DMSansMedium",
+    fontSize: 17,
+    color: colors.paper,
+  },
+  discountCopy: {
+    fontFamily: "DMSans",
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#e4e9df",
+  },
+  discountCta: {
+    fontFamily: "DMSansMedium",
+    fontSize: 14,
+    color: colors.paper,
+    marginTop: 4,
+  },
+  mapHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  mapCount: { fontFamily: "DMSansMedium", fontSize: 12, color: colors.forest },
+  placeChoices: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 14,
+  },
+  placeChoice: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    minHeight: 44,
+    justifyContent: "center",
+    backgroundColor: colors.paper,
+  },
+  placeChoiceSelected: {
+    backgroundColor: colors.forest,
+    borderColor: colors.forest,
+  },
+  placeChoiceText: {
+    fontFamily: "DMSansMedium",
+    fontSize: 13,
+    color: colors.forest,
+  },
+  foodPlaceImage: { width: "100%", height: 200 },
+  foodPlaceBody: { padding: 20, gap: 10 },
   destinationIcon: {
     width: 60,
     height: 60,

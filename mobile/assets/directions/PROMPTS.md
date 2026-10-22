@@ -17,3 +17,13 @@ Shared prompt: One photorealistic landscape 3:2 hotel wayfinding image, guest ey
 
 The textual instructions preserve the existing local route. Replace these illustrations and confirm the route against the real property before live guest navigation.
 
+
+## Food collection directions (22 October 2026)
+
+Three generated landscape 3:2 architectural photographs, matching warm honey oak, ivory stone and forest-green boutique capsule-hotel interiors. No people or watermarks.
+
+- food-lobby.jpg: Level 1 reception lobby with ribbed oak desk, brass lift doors, olive seating, plants and a readable LEVEL 1 sign.
+- food-wayfinding.jpg: hotel corridor with a forest-green Food collection sign and right arrow leading to a small food locker alcove.
+- food-locker-f03.jpg: small ivory food delivery compartments in an oak surround, closed F03 compartment with readable label and black QR optical reader with green status light. No displayed QR artwork.
+
+Generated using the built-in image generator. Exported as 900 × 600 JPEGs for the app. These are illustrative interiors; actual hotel signage is the route authority.

@@ -45,6 +45,7 @@ import {
 import { BookingLoading } from "./src/BookingScreen";
 import { Cosa, Page, titles } from "./src/context";
 import { useInactivity } from "./src/useInactivity";
+import { useDeliveryBridge } from "./src/useDeliveryBridge";
 
 const storageKey = "cosa-guest-v3";
 const legacyStorageKey = "cosa-demo-v2";
@@ -121,6 +122,7 @@ function HydratedApp({
   const scroll = useRef<ScrollView>(null),
     persistence = useRef(Promise.resolve());
   const t = (key: TextKey) => translate(s.language, key);
+  const deliveryError = useDeliveryBridge(s, dispatch);
   function go(destination: Page) {
     Keyboard.dismiss();
     if (page !== destination)
@@ -177,7 +179,8 @@ function HydratedApp({
   useEffect(() => {
     if (!s.bookingLinked && !["hub", "public", "booking"].includes(page))
       router.replace("/");
-    else if (s.bookingLinked && page === "booking") router.replace("/stay");
+    else if (s.bookingLinked && ["hub", "public", "booking"].includes(page))
+      router.replace("/stay");
   }, [s.bookingLinked, page, router]);
   const guestShell =
     s.bookingLinked && !["hub", "public", "booking"].includes(page);
@@ -244,6 +247,23 @@ function HydratedApp({
               onScrollBeginDrag={activity}
             >
               {!!storageError && <Notice error>{storageError}</Notice>}
+              {guestShell && page === "food-lockers" && !!deliveryError && (
+                <Notice error>{deliveryError}</Notice>
+              )}
+              {guestShell &&
+                page !== "food-lockers" &&
+                s.foodLocker?.status === "ready" && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Food delivered · locker ${s.foodLocker.id} · view collection`}
+                    accessibilityLiveRegion="polite"
+                    onPress={() => go("food-lockers")}
+                  >
+                    <Notice
+                      success
+                    >{`Your rider has delivered your food. Collect from locker ${s.foodLocker.id} · Level 1. Tap for directions & collection QR.`}</Notice>
+                  </Pressable>
+                )}
               {redirecting && <BookingLoading message="Preparing your stay…" />}
               <View
                 style={

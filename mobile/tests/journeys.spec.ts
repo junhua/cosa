@@ -6,13 +6,21 @@ async function choose(page: Page, label: string, value: string) {
   await page.getByRole("button", { name: new RegExp(`^${label}:`) }).click();
   await page.getByRole("radio", { name: value, exact: true }).click();
 }
-async function start(page: Page, state = initialStay) {
+async function start(page: Page, state = initialStay, connected = false) {
+  if (!connected)
+    await page.route(
+      "https://cosahub-delivery-staging.aiitpelective2005.chatgpt.site/**",
+      (route) =>
+        route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({ delivery: null }),
+        }),
+    );
   await page.addInitScript(
     (value) => sessionStorage.setItem("cosa-guest-v3", JSON.stringify(value)),
     { ...state, bookingLinked: true },
   );
-  await page.goto("/");
-  await page.getByRole("tab", { name: "Staying guest", exact: true }).click();
+  await page.goto("/", { waitUntil: "commit" });
   await page
     .getByRole("textbox", { name: "Reference booking ID", exact: true })
     .fill("CSA-0913");
@@ -23,6 +31,199 @@ async function start(page: Page, state = initialStay) {
     page.getByRole("heading", { name: "Welcome, Mina.", exact: true }),
   ).toBeVisible();
 }
+
+test("connected driver delivery reaches guest and collection releases the shared locker", async ({
+  page,
+  request,
+}, testInfo) => {
+  const service =
+    "https://cosahub-delivery-staging.aiitpelective2005.chatgpt.site/api/staging/deliveries/FD-4821";
+  await start(page, initialStay, true);
+  const complete = await request.post(`${service}/complete`, {
+    data: {
+      requestId: crypto.randomUUID(),
+      booking: "CSA-0913",
+      lockerId: "F03",
+    },
+  });
+  expect(complete.ok()).toBeTruthy();
+  const notice = page.getByRole("button", {
+    name: "Food delivered · locker F03 · view collection",
+    exact: true,
+  });
+  await expect(notice).toBeVisible({ timeout: 15000 });
+  await notice.screenshot({
+    path: `qa/connected-delivery-notice-${testInfo.project.name}.png`,
+  });
+  await notice.click();
+  await expect(page.getByText("FD-4821", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Scan QR to unlock food locker", exact: true })
+    .click();
+  await expect(
+    page.getByText("Take all your food and leave the locker door open.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Food collected successfully", exact: true })
+    .click();
+  await expect(
+    page.getByText(/Food collected successfully · locker F03 is available/),
+  ).toBeVisible();
+  const state = await (await request.get(`${service}?booking=CSA-0913`)).json();
+  expect(state.delivery.status).toBe("collected");
+  expect(state.delivery.notificationSeen).toBe(true);
+  await page.screenshot({
+    path: `qa/connected-delivery-collected-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+});
+
+test("food delivery notice leads to directions, QR unlock and leave-open collection", async ({
+  page,
+}, testInfo) => {
+  await start(page);
+  await page
+    .getByRole("button", {
+      name: "No food order yet External-party delivery & pickup",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Send sample food delivery", exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `qa/sample-food-delivery-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Send sample food delivery", exact: true })
+    .click();
+  const notice = page.getByRole("button", {
+    name: "Food delivered · locker F03 · view collection",
+    exact: true,
+  });
+  await expect(notice).toBeVisible();
+  await notice.screenshot({
+    path: `qa/food-locker-notice-${testInfo.project.name}.png`,
+  });
+  await notice.click();
+  await expect(
+    page.getByRole("heading", { name: "Your food has arrived.", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Directions to locker F03", exact: true })
+    .click();
+  await expect(
+    page.getByText("Go to the Level 1 lobby.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Find locker F03 and scan the QR below at its reader.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  const directionPictures = page.getByRole("img", {
+    name: /^Food locker directions, step/,
+  });
+  await expect(directionPictures).toHaveCount(3);
+  for (let step = 0; step < 3; step++) {
+    const pictureCard = directionPictures.nth(step).locator("../../..");
+    await pictureCard.scrollIntoViewIfNeeded();
+    await pictureCard
+      .locator("img")
+      .evaluateAll((images) =>
+        Promise.all(
+          images.map((image) => (image as HTMLImageElement).decode()),
+        ),
+      );
+    await pictureCard.screenshot({
+      path: `qa/food-locker-direction-${step + 1}-${testInfo.project.name}.png`,
+    });
+  }
+  await expect(
+    page.getByRole("img", { name: "Food locker collection QR", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Scan QR to unlock food locker", exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `qa/food-locker-qr-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Scan QR to unlock food locker", exact: true })
+    .click();
+  await expect(
+    page.getByText("Take all your food and leave the locker door open.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
+  await expect(
+    page.getByText(/The lock remains unlocked\. When you have everything/),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Lock & collect later", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Food collected successfully", exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `qa/food-locker-unlocked-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Food collected successfully", exact: true })
+    .click();
+  await expect(
+    page.getByText(
+      "Food collected successfully · locker F03 is available for the next delivery.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "Food locker collection QR", exact: true }),
+  ).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(sessionStorage.getItem("cosa-guest-v3") || "{}").foodLocker
+            ?.status,
+      ),
+    )
+    .toBe("collected");
+  await page.screenshot({
+    path: `qa/food-locker-collected-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Send sample food delivery", exact: true })
+    .click();
+  await expect(notice).toBeVisible();
+});
+
+test("food lockers never invent a delivery in a fresh stay", async ({
+  page,
+}) => {
+  await start(page);
+  await expect(
+    page.getByRole("button", { name: /Food delivered · locker/ }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", {
+      name: "No food order yet External-party delivery & pickup",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByText(/No food deliveries are waiting for collection/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "Food locker collection QR", exact: true }),
+  ).toHaveCount(0);
+});
 
 test("check-in requires consent and a readable photo, then room becomes ready automatically", async ({
   page,
@@ -44,9 +245,7 @@ test("check-in requires consent and a readable photo, then room becomes ready au
     })
     .click();
   let chooser = page.waitForEvent("filechooser");
-  await page
-    .getByRole("button", { name: "Upload file", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Upload file", exact: true }).click();
   await (
     await chooser
   ).setFiles({
@@ -62,9 +261,7 @@ test("check-in requires consent and a readable photo, then room becomes ready au
   ).toBeVisible();
   await expect(save).toBeDisabled();
   chooser = page.waitForEvent("filechooser");
-  await page
-    .getByRole("button", { name: "Upload file", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Upload file", exact: true }).click();
   await (await chooser).setFiles(path.resolve("assets/cosa/qr-collection.png"));
   await expect(page.getByText("Photo ready", { exact: true })).toBeVisible();
   await save.click();
@@ -209,15 +406,16 @@ test("hotel help saves and cancels a request", async ({ page }) => {
 test("booking gate protects guest routes and opens the welcome page after lookup", async ({
   page,
 }) => {
-  await page.goto("/arrival");
+  await page.goto("/arrival", { waitUntil: "commit" });
   await expect(
     page.getByRole("heading", { name: "cosahub", exact: true }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "Public", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "A little more Cōsa.", exact: true }),
+    page.getByRole("tab", { name: "Public", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("img", { name: "CosaHub Capsule Hotel logo" }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "Staying guest", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Find your stay." }),
   ).toBeVisible();
@@ -243,7 +441,7 @@ test("booking gate protects guest routes and opens the welcome page after lookup
   await expect(
     page.getByRole("heading", { name: "Welcome, Mina.", exact: true }),
   ).toBeVisible();
-  await page.reload();
+  await page.reload({ waitUntil: "commit" });
   await expect(
     page.getByRole("heading", { name: "cosahub", exact: true }),
   ).toBeVisible();
@@ -258,8 +456,117 @@ test("idle guest sessions return to CosaHub and require the reference again", as
   await expect(
     page.getByRole("heading", { name: "cosahub", exact: true }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "Staying guest", exact: true }).click();
   await expect(
     page.getByRole("textbox", { name: "Reference booking ID", exact: true }),
   ).toHaveValue("");
+});
+
+test("London food places show illustrations, external links and retain the café basket", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/", { waitUntil: "commit" });
+  await expect(
+    page.getByRole("textbox", { name: "Reference booking ID", exact: true }),
+  ).toBeVisible({ timeout: 30000 });
+  await page.screenshot({
+    path: `qa/booking-food-landing-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await start(page);
+  await page
+    .getByRole("button", {
+      name: "Food & delivery Coffee, pastries & quick bites",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Add Flat white", exact: true })
+    .click();
+  await page.getByRole("tab", { name: "External party", exact: true }).click();
+  for (const name of [
+    "Din Tai Fung Centre Point",
+    "Nando’s Soho",
+    "GAIL’s Soho",
+  ]) {
+    await page
+      .getByRole("button", { name: `Show ${name} on map`, exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", {
+        name: `Explore menu & ordering at ${name} (external website)`,
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("link", {
+        name: `Find ${name} on map (external website)`,
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    const card = page
+      .getByRole("heading", { name, exact: true })
+      .locator("../..");
+    await card.scrollIntoViewIfNeeded();
+    await card
+      .locator("img")
+      .evaluateAll((images) =>
+        Promise.all(
+          images.map((image) => (image as HTMLImageElement).decode()),
+        ),
+      );
+    await card.screenshot({
+      path: `qa/piccadilly-food-map-${name.split(" ")[0].replace(/[^a-z]/gi, "")}-${testInfo.project.name}.png`,
+    });
+  }
+  await expect(page.getByRole("img", { name: /^Illustrative/ })).toHaveCount(1);
+  const map = page.getByLabel("Piccadilly Circus food map, 1 km radius", {
+    exact: true,
+  });
+  await map.scrollIntoViewIfNeeded();
+  await map
+    .locator("img")
+    .evaluateAll((images) =>
+      Promise.all(images.map((image) => (image as HTMLImageElement).decode())),
+    );
+  await map.screenshot({
+    path: `qa/piccadilly-food-map-${testInfo.project.name}.png`,
+  });
+  const offer = page.getByRole("link", {
+    name: "5% guest discount offer preview. Continue to Uber Eats (external website)",
+    exact: true,
+  });
+  await expect(offer).toBeVisible();
+  await offer.screenshot({
+    path: `qa/piccadilly-food-discount-${testInfo.project.name}.png`,
+  });
+  await page.route("https://www.ubereats.com/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "Uber Eats handoff verified",
+    }),
+  );
+  const popup = page.waitForEvent("popup");
+  await offer.click();
+  const deliveryPage = await popup;
+  await expect(deliveryPage).toHaveURL(
+    "https://www.ubereats.com/gb/city/london-eng",
+  );
+  await deliveryPage.close();
+  await expect(
+    page.getByText(
+      "Explore a few London favourites within 1 km of Piccadilly Circus.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page.screenshot({
+    path: `qa/london-food-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page.getByRole("tab", { name: "Cosa coffee bar", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: /Review basket · 1 items/ }),
+  ).toBeEnabled();
 });

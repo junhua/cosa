@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Keyboard,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { Button, colors, Fine, Heading, Icon, Notice, ui } from "./components";
+import { Button, colors, Fine, Heading, Notice, ui } from "./components";
 import { useCosa } from "./context";
 import { matchesBookingReference } from "./stay";
 
@@ -30,7 +31,7 @@ export function BookingLoading({
 }
 
 export default function BookingScreen() {
-  const { dispatch, go } = useCosa();
+  const { dispatch } = useCosa();
   const [reference, setReference] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,10 +64,15 @@ export default function BookingScreen() {
   if (loading) return <BookingLoading />;
   return (
     <View style={styles.page}>
-      <Text style={styles.brand}>Cōsa</Text>
-      <View style={styles.symbol}>
-        <Icon name="calendar" size={32} />
-      </View>
+      <Text accessibilityRole="header" style={styles.brand}>
+        cosahub
+      </Text>
+      <Image
+        source={require("../assets/cosahub-logo.png")}
+        resizeMode="contain"
+        style={styles.logo}
+        accessibilityLabel="CosaHub Capsule Hotel logo"
+      />
       <Heading eyebrow="YOUR STAY STARTS HERE" title="Find your stay.">
         Enter your reference booking ID to get started.
       </Heading>
@@ -91,20 +97,24 @@ export default function BookingScreen() {
       <Button disabled={!reference.trim()} icon="arrow-right" onPress={enter}>
         Continue to my stay
       </Button>
-      <Button secondary onPress={() => go("hub")}>
-        Back to CosaHub
-      </Button>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, justifyContent: "center", paddingVertical: 32 },
+  page: { flex: 1, justifyContent: "center", paddingVertical: 24 },
   brand: {
     fontFamily: "DMSerif",
     fontSize: 48,
     color: colors.forest,
-    marginBottom: 36,
+    marginBottom: 20,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+    alignSelf: "center",
+    borderRadius: 24,
+    marginBottom: 24,
   },
   symbol: {
     width: 64,

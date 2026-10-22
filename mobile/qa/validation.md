@@ -76,3 +76,37 @@ The updated Playwright specifications were typechecked but not CLI-executed in t
 ## Booking entry addition
 
 Added the reference booking ID entry route and branded loading transition. At that revision, verified in the actual browser: `/arrival` redirects a fresh unlinked session to `/booking`; Continue is disabled for empty input; an unknown ID shows the loading state then a retry notice; ` csa-0913 ` opens Welcome, Mina; reload preserves the linked booking. These entry/restore behaviors are superseded by the CosaHub opening page above. Browser error logs returned no entries. Captures: `qa/clean/booking-entry.png` and `qa/clean/booking-loading.png`. The regression specifications include the route guard and lookup journey. That revision had 10 reducer tests, including booking validation, persistence and legacy migration.
+
+## Booking entry and London food — 22 October 2026
+
+Validated the direct booking form, retained logo, unknown-reference retry, valid reference lookup, guest-route gating and reload behavior on iPhone (393 × 852) and Pixel (427 × 952). External party checks cover three restaurant cards, labelled illustrative images, menu/ordering links and retained café basket after tab switching. Final targeted Playwright run: 4 passed. Fresh visual evidence: booking-food-landing-{iphone,pixel}.png and london-food-{Dumpling,Nandos,GAILs}-{iphone,pixel}.png in this folder. Inspected generated assets and fresh screenshots; corrected oversized web image layout with explicit image heights. Lint, TypeScript and web production export passed. The preview server required a restart to clear reload timeouts during verification. No live external order was placed; physical native-device behavior was not tested.
+
+## Food map and delivery offer — 22 October 2026
+
+Added a real street-map viewport with a projected 1 km radius, sample hotel centre, numbered venue pins, named selection controls, one selected food card and visible OpenStreetMap attribution. The 5% offer preview opens the Uber Eats London page; it does not apply a discount. The centre is a sample Spitalfields location, and approximate venue pins are disclosed. Pending details: hotel address and an approved partner promotion/link. No geolocation or real order is used.
+
+Lint, TypeScript and the web production export passed. Targeted iPhone/Pixel browser coverage checks all three pin selections and matching cards, retained café basket and a mocked external popup handoff to the correct Uber Eats URL. Screenshots wait for image decoding. Fresh evidence is in food-map-{iphone,pixel}.png, food-discount-{iphone,pixel}.png and food-map-{Dumpling,Nandos,GAILs}-{iphone,pixel}.png. The development server was restarted after export because hot reload intermittently stalled; the initial cold-start assertion now allows 30 seconds. Native phones were not tested.
+
+## Piccadilly Circus update — 22 October 2026
+
+Replaced the sample Spitalfields centre with Piccadilly Circus and nearby Din Tai Fung Centre Point, Nando’s Soho and GAIL’s Soho. Updated centre labels, approximate pins, venue links, map links and browser expectations. Lint, TypeScript and web export passed. Targeted browser suite passed on iPhone and Pixel (2 tests), including pin/card selection, image decoding, Uber Eats link handoff and retained café basket. Fresh visual evidence uses the piccadilly-food-map and piccadilly-food-discount prefixes. Inspected the map on both presets. Prior Spitalfields screenshots are historical.
+
+## Food card link removal — 22 October 2026
+
+Removed Explore menu & ordering and Find on map from all external-party food cards, along with their unused styles and URL fields. Updated the introduction to match the remaining experience. Lint, TypeScript and web export passed. The targeted browser checks passed on iPhone and Pixel, asserting both links are absent for each selected venue while map selection, the Uber Eats offer handoff and café basket retention work. Fresh piccadilly-food-map venue screenshots show the shortened cards and were inspected on both phone presets.
+
+## Food collection workflow — 22 October 2026
+
+Implemented delivered-food in-app notice, assigned F03 locker/location, expandable Level 1 directions, collection QR unlock, leave-open/unlocked instruction and single successful-collection confirmation. Removed food close-door checkboxes and re-lock action; completion accepts an open door and releases the assignment for a subsequent provider delivery. Existing ready/unlocked/collected records restore using the same status values. No fabricated delivery is added to a fresh stay.
+
+Validation: 17 reducer/state tests pass, including collection only after unlock, refusal without removed-food confirmation, completion without door closure, restored state and subsequent delivery assignment. Lint, TypeScript and web production export pass. Four targeted Playwright cases pass across iPhone and Pixel for delivered notice, directions, QR, unlock/leave-open prompt, successful collection, inactive completed QR, persisted collection and no-delivery state. Fresh evidence: food-locker-{notice,qr,unlocked,collected}-{iphone,pixel}.png. Screenshots inspected on both presets. Real rider updates, OS push, physical readers/locks and production inventory are outside this local implementation.
+
+## Sample delivery trigger — 22 October 2026
+
+Added the explicitly requested development-only Send sample food delivery action for empty/completed food collection sessions. It creates a new F03 sample assignment and opens My stay with the delivered-food notification; an existing waiting/unlocked assignment cannot be overwritten. The action is available again after successful collection. Lint, TypeScript and web export passed. Four iPhone/Pixel browser cases passed, including triggering the sample through the visible UI, notification, directions, QR unlock, leave-open completion, persistence, repeat sample and empty-state behavior. Inspected fresh sample-food-delivery-{iphone,pixel}.png screenshots. Production exports exclude the sample button.
+
+## Illustrated food locker directions — 22 October 2026
+
+Removed the specified lock-remains-unlocked paragraph. Added three generated, bundled interior images beneath the corresponding numbered directions: Level 1 lobby, Food collection sign/alcove and F03 food locker/reader. Styling follows the hotel directions with forest circular step numbers, rounded full-image frames and dividers. Images have descriptive accessibility labels and an illustrative-image/signage note.
+
+Lint, TypeScript and web export passed. Four targeted iPhone/Pixel cases passed for the sample notification, illustrated directions, QR unlock, removal of the paragraph, collection and no-delivery behavior. After adjusting screenshot framing, reran the two full-collection cases successfully. Fresh evidence: food-locker-direction-{1,2,3}-{iphone,pixel}.png and updated food-locker-unlocked-{iphone,pixel}.png. Inspected numbered image cards and unlocked screen on both presets. Prompt notes are in assets/directions/PROMPTS.md. No state or backend changes were made.

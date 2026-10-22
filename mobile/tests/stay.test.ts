@@ -82,20 +82,15 @@ test("food locker readiness, restoration and collection stay independent of lugg
   assert.equal(s.foodLocker?.id, "F03");
   assert.equal(s.bag, "none");
   assert.equal(s.order, "none");
+  assert.equal(reduce(s, { type: "food-locker-finish", removed: true }), s);
   s = reduce(s, { type: "food-locker-unlock" });
   assert.equal(
     reduce(s, { type: "food-locker-finish", removed: false, closed: true }),
     s,
   );
-  assert.equal(
-    reduce(s, { type: "food-locker-finish", removed: true, closed: false }),
-    s,
-  );
-  assert.equal(reduce(s, { type: "food-locker-relock", closed: false }), s);
-  s = reduce(s, { type: "food-locker-relock", closed: true });
-  assert.equal(s.foodLocker?.status, "ready");
-  s = reduce(s, { type: "food-locker-unlock" });
-  s = reduce(s, { type: "food-locker-finish", removed: true, closed: true });
+  assert.equal(s.foodLocker?.status, "released");
+  s = restoreStay(JSON.parse(JSON.stringify(s)));
+  s = reduce(s, { type: "food-locker-finish", removed: true, closed: false });
   assert.equal(s.foodLocker?.status, "collected");
   assert.equal(
     restoreStay(JSON.parse(JSON.stringify(s))).foodLocker?.status,
@@ -115,6 +110,34 @@ test("food locker readiness, restoration and collection stay independent of lugg
       lockerId: "F03",
     }).foodLocker?.status,
     "ready",
+  );
+});
+
+test("connected delivery cycle survives restoration and stale collection cannot release a newer cycle", () => {
+  const state = reduce(
+    { ...initialStay, bookingLinked: true },
+    {
+      type: "food-delivery-ready",
+      reference: "FD-4821",
+      lockerId: "F03",
+      bridgeCycle: "cycle-1",
+    },
+  );
+  const restored = restoreStay(JSON.parse(JSON.stringify(state)));
+  assert.equal(restored.foodLocker?.bridgeCycle, "cycle-1");
+  assert.equal(
+    reduce(restored, {
+      type: "food-locker-remote-collected",
+      cycleId: "stale",
+    }),
+    restored,
+  );
+  assert.equal(
+    reduce(restored, {
+      type: "food-locker-remote-collected",
+      cycleId: "cycle-1",
+    }).foodLocker?.status,
+    "collected",
   );
 });
 

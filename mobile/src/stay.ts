@@ -45,6 +45,7 @@ export type Stay = {
     reference: string;
     status: "reserved" | "ready" | "released" | "collected";
     readyAt: number | null;
+    bridgeCycle?: string;
   } | null;
   additionalLockers: ExtraLocker[];
   lockerPayments: LockerPayment[];
@@ -210,6 +211,10 @@ export function restoreStay(value: unknown): Stay {
       id: "F03",
       reference: foodLocker.reference.trim(),
       status: foodLocker.status,
+      ...(typeof foodLocker.bridgeCycle === "string" &&
+      foodLocker.bridgeCycle.length <= 80
+        ? { bridgeCycle: foodLocker.bridgeCycle }
+        : {}),
       readyAt:
         foodLocker.status === "reserved"
           ? typeof foodLocker.readyAt === "number" &&
@@ -415,10 +420,16 @@ export type Action =
   | { type: "order"; now?: number }
   | { type: "order-ready" }
   | { type: "order-collected" }
-  | { type: "food-delivery-ready"; reference: string; lockerId: "F03" }
+  | {
+      type: "food-delivery-ready";
+      reference: string;
+      lockerId: "F03";
+      bridgeCycle?: string;
+      unlocked?: boolean;
+    }
+  | { type: "food-locker-remote-collected"; cycleId: string }
   | { type: "food-locker-unlock" }
-  | { type: "food-locker-relock"; closed: boolean }
-  | { type: "food-locker-finish"; removed: boolean; closed: boolean }
+  | { type: "food-locker-finish"; removed: boolean; closed?: boolean }
   | { type: "new-order" }
   | { type: "housekeeping"; request: Housekeeping }
   | { type: "sync"; now: number }
@@ -434,31 +445,33 @@ export function stayReducer(s: Stay, a: Action): Stay {
       return a.lockerId === "F03" &&
         reference.length > 0 &&
         reference.length <= 80 &&
-        (!s.foodLocker || s.foodLocker.status === "collected")
+        (!s.foodLocker ||
+          s.foodLocker.status === "collected" ||
+          (a.bridgeCycle &&
+            s.foodLocker.reference.startsWith("SAMPLE-FOOD-") &&
+            s.foodLocker.status === "ready"))
         ? {
             ...s,
             foodLocker: {
               id: a.lockerId,
               reference,
-              status: "ready",
+              status: a.unlocked ? "released" : "ready",
+              ...(a.bridgeCycle ? { bridgeCycle: a.bridgeCycle } : {}),
               readyAt: null,
             },
           }
         : s;
     }
+    case "food-locker-remote-collected":
+      return s.foodLocker?.bridgeCycle === a.cycleId
+        ? { ...s, foodLocker: { ...s.foodLocker, status: "collected" } }
+        : s;
     case "food-locker-unlock":
       return s.bookingLinked && s.foodLocker?.status === "ready"
         ? { ...s, foodLocker: { ...s.foodLocker, status: "released" } }
         : s;
-    case "food-locker-relock":
-      return s.bookingLinked && s.foodLocker?.status === "released" && a.closed
-        ? { ...s, foodLocker: { ...s.foodLocker, status: "ready" } }
-        : s;
     case "food-locker-finish":
-      return s.bookingLinked &&
-        s.foodLocker?.status === "released" &&
-        a.removed &&
-        a.closed
+      return s.bookingLinked && s.foodLocker?.status === "released" && a.removed
         ? { ...s, foodLocker: { ...s.foodLocker, status: "collected" } }
         : s;
     case "pay-lockers": {
