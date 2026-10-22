@@ -32,6 +32,47 @@ async function start(page: Page, state = initialStay, connected = false) {
   ).toBeVisible();
 }
 
+test("shower availability shows male and female cubicles for each time period", async ({
+  page,
+}, testInfo) => {
+  await start(page);
+  await page.getByRole("tab", { name: "Hotel", exact: true }).click();
+  await page
+    .getByRole("button", { name: /Shower availability View cubicle availability/ })
+    .click();
+  await expect(page.getByText("Male cubicles", { exact: true })).toBeVisible();
+  await expect(page.getByText("Female cubicles", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Male 2/2 · Female 1/2 available. No reservation needed.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("2 of 2 available", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 of 2 available", { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: `qa/shower-availability-daytime-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page.getByText("Female cubicles", { exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `qa/shower-availability-female-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await choose(page, "Time of day", "Morning · 7am–10am");
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await expect(
+    page.getByText("Male 0/2 · Female 1/2 available. No reservation needed.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("0 of 2 available", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 of 2 available", { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: `qa/shower-availability-morning-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+});
+
 test("connected driver delivery reaches guest and collection releases the shared locker", async ({
   page,
   request,

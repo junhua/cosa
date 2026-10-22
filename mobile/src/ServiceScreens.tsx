@@ -92,7 +92,7 @@ const directions = [
     ],
   },
   {
-    name: "Showers · S03",
+    name: "Showers",
     floor: "Level 2",
     images: [
       require("../assets/directions/lift.jpg"),
@@ -102,7 +102,7 @@ const directions = [
     steps: [
       "Take the lift to Level 2.",
       "Turn right towards the lounge.",
-      "Follow the shower signs to S03. Follow availability signs.",
+      "Follow the signs to the male or female shower area, then check the cubicle signs.",
     ],
   },
   {
@@ -274,12 +274,26 @@ export function Hotel() {
 export function Showers() {
   const [period, setPeriod] = useState("Daytime · 10am–6pm");
   const peak = !period.startsWith("Daytime");
+  const status = (id: string) =>
+    peak
+      ? id === "S03"
+        ? "Available"
+        : "In use"
+      : id === "S04"
+        ? "Cleaning"
+        : "Available";
+  const groups = [
+    { name: "Male cubicles", label: "Male", ids: ["S01", "S02"] },
+    { name: "Female cubicles", label: "Female", ids: ["S03", "S04"] },
+  ].map((group) => ({
+    ...group,
+    available: group.ids.filter((id) => status(id) === "Available").length,
+  }));
   return (
     <>
       <Heading eyebrow="SHOWER AVAILABILITY" title="Freshen up, at your pace.">
         Check availability before heading to the Level 2 showers.
       </Heading>
-      <SectionTitle>Shower availability</SectionTitle>
       <Select
         label="Time of day"
         value={period}
@@ -291,35 +305,43 @@ export function Showers() {
         onChange={setPeriod}
       />
       <Notice>
-        {peak ? "1 of 4 cubicles available." : "3 of 4 cubicles available."} No
-        reservation needed.
+        {groups.map((group) => `${group.label} ${group.available}/2`).join(" · ")}
+        {" available. No reservation needed."}
       </Notice>
-      <View style={styles.showerGrid}>
-        {["S01", "S02", "S03", "S04"].map((id, i) => (
-          <View
-            key={id}
-            style={[
-              styles.shower,
-              {
-                backgroundColor: (peak ? i === 2 : i !== 3)
-                  ? "#e5eddf"
-                  : "#f0e7da",
-              },
-            ]}
-          >
-            <Icon name="droplet" />
-            <Text style={ui.body}>{id}</Text>
-            <Fine>
-              {(peak ? i === 2 : i !== 3)
-                ? "Available"
-                : !peak && i === 3
-                  ? "Cleaning"
-                  : "In use"}
-            </Fine>
+      {groups.map((group) => {
+        return (
+          <View key={group.name} style={styles.showerGroup}>
+            <View style={styles.showerGroupHeading}>
+              <Text style={styles.showerGroupTitle}>{group.name}</Text>
+              <Text style={styles.showerGroupCount}>
+                {group.available} of {group.ids.length} available
+              </Text>
+            </View>
+            <View style={styles.showerGrid}>
+              {group.ids.map((id) => {
+                const cubicleStatus = status(id);
+                return (
+                  <View
+                    key={id}
+                    style={[
+                      styles.shower,
+                      {
+                        backgroundColor:
+                          cubicleStatus === "Available" ? "#e5eddf" : "#f0e7da",
+                      },
+                    ]}
+                  >
+                    <Icon name="droplet" />
+                    <Text style={ui.body}>{id}</Text>
+                    <Fine>{cubicleStatus}</Fine>
+                  </View>
+                );
+              })}
+            </View>
           </View>
-        ))}
-      </View>
-      <Fine>Follow availability signs at the shower area.</Fine>
+        );
+      })}
+      <Fine>Indicative availability. Check signs at the shower area for current status.</Fine>
       <Help />
     </>
   );
@@ -1150,6 +1172,23 @@ const styles = StyleSheet.create({
     color: colors.bg,
   },
   showerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  showerGroup: { gap: 12 },
+  showerGroupHeading: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  showerGroupTitle: {
+    color: colors.ink,
+    fontFamily: "DMSansMedium",
+    fontSize: 18,
+  },
+  showerGroupCount: {
+    color: colors.forest,
+    fontFamily: "DMSansMedium",
+    fontSize: 14,
+  },
   shower: { width: "48%", padding: 18, borderRadius: 12, gap: 8 },
   menuItem: {
     paddingVertical: 19,
