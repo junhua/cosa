@@ -18,6 +18,7 @@ export type Page =
   | "hotel"
   | "food-lockers"
   | "showers"
+  | "toilets"
   | "directions"
   | "housekeeping"
   | "services"
@@ -40,6 +41,7 @@ export const titles: Record<Page, string> = {
   hotel: "Hotel services",
   "food-lockers": "Food collection lockers",
   showers: "Shower availability",
+  toilets: "Toilet availability",
   directions: "Hotel directions",
   housekeeping: "Housekeeping",
   services: "Hotel information & help",

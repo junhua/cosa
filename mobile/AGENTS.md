@@ -42,4 +42,8 @@ Docs: https://docs.expo.dev/eas/index.md
 
 ## Guest flow scope
 
+Hotel services includes separate Shower availability and Toilet availability pages with male and female cubicle counts and individual statuses. Neither page has a Time of day selector. Both use indicative local availability, require no reservation, and retain the shared Hotel navigation and help workflow (27 October 2026).
+
+Assume four hotel levels, each with male and female toilets and showers. Both availability pages show per-level male/female totals in selectable level cards and the selected level's cubicle details. Default to Level 2; keep cubicle IDs unique across levels (e.g. S201, T401). Each facility currently has two cubicles per gender on each level, with local illustrative occupancy (27 October 2026).
+
 The user requested a clean local guest flow matching the linked Cōsa prototype (October 2026). Remove guest-facing demo labels, scenario selectors, reset controls, and manual staff-status buttons. Use persisted local state and scheduled status updates. Live hotel, identity, hardware, payments, and support integrations are outside this authorized scope; describe that in developer documentation, not repeated UI banners.

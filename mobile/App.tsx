@@ -313,6 +313,7 @@ function HydratedApp({
                         "housekeeping",
                         "food-lockers",
                         "showers",
+                        "toilets",
                         "concierge",
                       ].includes(page)
                     : item.page === "hotel"
@@ -322,6 +323,7 @@ function HydratedApp({
                           "housekeeping",
                           "food-lockers",
                           "showers",
+                          "toilets",
                         ].includes(page)
                       : page === "concierge";
                 return (

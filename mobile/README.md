@@ -83,6 +83,12 @@ Reviewed the local `design/Cosa-Prototype-Local` instructions, implementation, s
 - `src/components.tsx`, `src/i18n.ts`: native UI primitives and key-screen translations.
 
 
+## Shower and toilet availability — 27 October 2026
+
+Hotel services now includes separate Shower availability and Toilet availability entries. Each page shows male and female cubicle counts and individual Available, In use or Cleaning statuses. The shower Time of day dropdown has been removed; both pages show indicative local statuses without time selection or reservations. Check the signs in the Level 2 facilities for current status. This supersedes the period-selection descriptions below.
+
+Both pages now cover Levels 1–4, each with male and female facilities and two cubicles per gender. Level cards show each floor's male/female available counts for comparison; selecting a card updates the cubicle details, counts and signage guidance. Level 2 is selected initially. IDs include the level (S201–S204, T401–T404) and statuses remain illustrative local data. This supersedes the Level 2-only availability description above.
+
 ## Food collection lockers
 
 Food lockers serve external-party food deliveries for collection and pickup only. Guests cannot reserve or cancel lockers, enter delivery references or choose an allocation. Cōsa Coffee Bar orders continue to use lobby pickup.

@@ -110,3 +110,17 @@ Added the explicitly requested development-only Send sample food delivery action
 Removed the specified lock-remains-unlocked paragraph. Added three generated, bundled interior images beneath the corresponding numbered directions: Level 1 lobby, Food collection sign/alcove and F03 food locker/reader. Styling follows the hotel directions with forest circular step numbers, rounded full-image frames and dividers. Images have descriptive accessibility labels and an illustrative-image/signage note.
 
 Lint, TypeScript and web export passed. Four targeted iPhone/Pixel cases passed for the sample notification, illustrated directions, QR unlock, removal of the paragraph, collection and no-delivery behavior. After adjusting screenshot framing, reran the two full-collection cases successfully. Fresh evidence: food-locker-direction-{1,2,3}-{iphone,pixel}.png and updated food-locker-unlocked-{iphone,pixel}.png. Inspected numbered image cards and unlocked screen on both presets. Prompt notes are in assets/directions/PROMPTS.md. No state or backend changes were made.
+
+
+## Shower and toilet availability — 27 October 2026
+
+Removed the shower Time of day dropdown and period switching. Added Hotel > Toilet availability with a dedicated route, separate male/female counts, and T01–T04 statuses using the same shared cubicle layout, help and back navigation as showers. Both pages retain indicative-availability copy; no live occupancy service or reservations were added.
+
+Validation: lint, TypeScript, web production export and the protected design runtime integrity check passed. Two targeted Playwright cases passed on iPhone (393 × 852) and Pixel (427 × 952), covering Hotel entry, both groups and totals, no time selector, individual toilet statuses, and back navigation. Fresh screenshots were visually inspected for both device sizes: shower-availability-current-{iphone,pixel}.png, toilet-availability-{iphone,pixel}.png and hotel-toilet-entry-iphone.png. The rest of the guest regression suite was not run for this change.
+
+
+## Four-level facility availability — 27 October 2026
+
+Shower and toilet pages now show selectable Levels 1–4 with male/female availability counts on every level card. Each level has two male and two female cubicles for each facility, with floor-specific illustrative statuses and unique IDs. Level 2 is selected initially. Selected-floor details and signage guidance update together; no time selector, booking or live occupancy service was added.
+
+Validation: lint, TypeScript, web production export and the protected design runtime check passed. Two targeted browser cases passed on iPhone and Pixel, each checking all four levels on both pages, per-floor totals, all cubicle IDs, no time dropdown, and Hotel/back navigation. Fresh level overview and scrolled detail screenshots were inspected: shower-levels-{iphone,pixel}.png, toilet-levels-{iphone,pixel}.png, shower-level-details-iphone.png and toilet-level-details-pixel.png. Existing default-level screenshots were refreshed. Full guest regressions and physical-device tests were not run.

@@ -259,6 +259,12 @@ export function Hotel() {
         detail="View cubicle availability · no reservation needed"
         onPress={() => go("showers")}
       />
+      <Row
+        icon="users"
+        title="Toilet availability"
+        detail="View cubicle availability · no reservation needed"
+        onPress={() => go("toilets")}
+      />
       <SectionTitle>Stay essentials</SectionTitle>
       <Summary
         rows={[
@@ -272,40 +278,95 @@ export function Hotel() {
   );
 }
 export function Showers() {
-  const [period, setPeriod] = useState("Daytime · 10am–6pm");
-  const peak = !period.startsWith("Daytime");
-  const status = (id: string) =>
-    peak
-      ? id === "S03"
-        ? "Available"
-        : "In use"
-      : id === "S04"
-        ? "Cleaning"
-        : "Available";
+  return <CubicleAvailability />;
+}
+export function Toilets() {
+  return <CubicleAvailability toilets />;
+}
+function CubicleAvailability({ toilets = false }: { toilets?: boolean }) {
+  const [level, setLevel] = useState(2);
+  const facility = toilets ? "toilet" : "shower";
+  const prefix = toilets ? "T" : "S";
+  const levels = [1, 2, 3, 4];
+  const statuses = toilets
+    ? [
+        ["Available", "In use", "Available", "Available"],
+        ["Available", "In use", "Available", "Cleaning"],
+        ["Available", "Available", "In use", "Cleaning"],
+        ["Cleaning", "In use", "Available", "Available"],
+      ]
+    : [
+        ["Available", "In use", "Available", "Available"],
+        ["Available", "Available", "Available", "Cleaning"],
+        ["In use", "Cleaning", "Available", "In use"],
+        ["Available", "Cleaning", "Available", "Available"],
+      ];
+  const availableCount = (floor: number, start: number) =>
+    statuses[floor - 1]
+      .slice(start, start + 2)
+      .filter((value) => value === "Available").length;
+  const status = (id: string) => statuses[level - 1][Number(id.slice(-2)) - 1];
   const groups = [
-    { name: "Male cubicles", label: "Male", ids: ["S01", "S02"] },
-    { name: "Female cubicles", label: "Female", ids: ["S03", "S04"] },
+    {
+      name: "Male cubicles",
+      label: "Male",
+      ids: [`${prefix}${level}01`, `${prefix}${level}02`],
+    },
+    {
+      name: "Female cubicles",
+      label: "Female",
+      ids: [`${prefix}${level}03`, `${prefix}${level}04`],
+    },
   ].map((group) => ({
     ...group,
     available: group.ids.filter((id) => status(id) === "Available").length,
   }));
   return (
     <>
-      <Heading eyebrow="SHOWER AVAILABILITY" title="Freshen up, at your pace.">
-        Check availability before heading to the Level 2 showers.
+      <Heading
+        eyebrow={toilets ? "TOILET AVAILABILITY" : "SHOWER AVAILABILITY"}
+        title={
+          toilets
+            ? "A little comfort, when you need it."
+            : "Freshen up, at your pace."
+        }
+      >
+        Male and female {facility}s are available on all four levels. Choose a
+        level to view its cubicles.
       </Heading>
-      <Select
-        label="Time of day"
-        value={period}
-        options={[
-          "Morning · 7am–10am",
-          "Daytime · 10am–6pm",
-          "Evening · 6pm–10pm",
-        ]}
-        onChange={setPeriod}
-      />
+      <SectionTitle>Choose a level</SectionTitle>
+      <View style={styles.showerGrid}>
+        {levels.map((floor) => (
+          <Pressable
+            key={floor}
+            accessibilityRole="radio"
+            accessibilityLabel={`Level ${floor}: Male ${availableCount(floor, 0)}/2, Female ${availableCount(floor, 2)}/2 available`}
+            accessibilityState={{ checked: floor === level }}
+            onPress={() => setLevel(floor)}
+            style={[
+              styles.levelChoice,
+              {
+                borderColor: floor === level ? colors.forest : colors.line,
+                backgroundColor: floor === level ? "#e5eddf" : "transparent",
+              },
+            ]}
+          >
+            <Text style={ui.body}>
+              Level {floor}
+              {floor === level ? " · Selected" : ""}
+            </Text>
+            <Fine>
+              Male {availableCount(floor, 0)}/2 · Female{" "}
+              {availableCount(floor, 2)}/2
+            </Fine>
+          </Pressable>
+        ))}
+      </View>
+      <SectionTitle>{`Level ${level} cubicles`}</SectionTitle>
       <Notice>
-        {groups.map((group) => `${group.label} ${group.available}/2`).join(" · ")}
+        {groups
+          .map((group) => `${group.label} ${group.available}/2`)
+          .join(" · ")}
         {" available. No reservation needed."}
       </Notice>
       {groups.map((group) => {
@@ -331,7 +392,7 @@ export function Showers() {
                       },
                     ]}
                   >
-                    <Icon name="droplet" />
+                    <Icon name={toilets ? "users" : "droplet"} />
                     <Text style={ui.body}>{id}</Text>
                     <Fine>{cubicleStatus}</Fine>
                   </View>
@@ -341,7 +402,10 @@ export function Showers() {
           </View>
         );
       })}
-      <Fine>Indicative availability. Check signs at the shower area for current status.</Fine>
+      <Fine>
+        Indicative availability. Check signs at the Level {level} {facility}{" "}
+        area for current status.
+      </Fine>
       <Help />
     </>
   );
@@ -1172,6 +1236,13 @@ const styles = StyleSheet.create({
     color: colors.bg,
   },
   showerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  levelChoice: {
+    width: "48%",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+  },
   showerGroup: { gap: 12 },
   showerGroupHeading: {
     flexDirection: "row",

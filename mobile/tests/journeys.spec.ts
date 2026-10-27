@@ -32,43 +32,142 @@ async function start(page: Page, state = initialStay, connected = false) {
   ).toBeVisible();
 }
 
-test("shower availability shows male and female cubicles for each time period", async ({
+test("hotel cubicle availability shows showers and toilets without time selectors", async ({
   page,
 }, testInfo) => {
   await start(page);
   await page.getByRole("tab", { name: "Hotel", exact: true }).click();
   await page
-    .getByRole("button", { name: /Shower availability View cubicle availability/ })
+    .getByRole("button", {
+      name: /Shower availability View cubicle availability/,
+    })
     .click();
   await expect(page.getByText("Male cubicles", { exact: true })).toBeVisible();
-  await expect(page.getByText("Female cubicles", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Female cubicles", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Time of day:/ })).toHaveCount(
+    0,
+  );
   await expect(
     page.getByText("Male 2/2 · Female 1/2 available. No reservation needed.", {
       exact: true,
     }),
   ).toBeVisible();
-  await expect(page.getByText("2 of 2 available", { exact: true })).toBeVisible();
-  await expect(page.getByText("1 of 2 available", { exact: true })).toBeVisible();
   await page.screenshot({
-    path: `qa/shower-availability-daytime-${testInfo.project.name}.png`,
+    path: `qa/shower-availability-current-${testInfo.project.name}.png`,
     fullPage: true,
   });
-  await page.getByText("Female cubicles", { exact: true }).scrollIntoViewIfNeeded();
+  for (const [floor, counts] of [
+    [1, "Male 1/2 · Female 2/2"],
+    [2, "Male 2/2 · Female 1/2"],
+    [3, "Male 0/2 · Female 1/2"],
+    [4, "Male 1/2 · Female 2/2"],
+  ] as const) {
+    await page
+      .getByRole("radio", { name: new RegExp(`^Level ${floor}:`) })
+      .click();
+    await expect(
+      page.getByRole("heading", {
+        name: `Level ${floor} cubicles`,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(`${counts} available. No reservation needed.`, {
+        exact: true,
+      }),
+    ).toBeVisible();
+    for (const suffix of ["01", "02", "03", "04"]) {
+      await expect(
+        page.getByText(`S${floor}${suffix}`, { exact: true }),
+      ).toBeVisible();
+    }
+  }
   await page.screenshot({
-    path: `qa/shower-availability-female-${testInfo.project.name}.png`,
+    path: `qa/shower-levels-${testInfo.project.name}.png`,
     fullPage: true,
   });
-  await choose(page, "Time of day", "Morning · 7am–10am");
-  await expect(page.getByRole("radio")).toHaveCount(0);
+  await page
+    .getByText("Female cubicles", { exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `qa/shower-level-details-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Back to previous screen", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: /Toilet availability View cubicle availability/,
+    })
+    .click();
+  await expect(page).toHaveURL(/\/toilets$/);
+  await expect(page.getByText("Male cubicles", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("Male 0/2 · Female 1/2 available. No reservation needed.", {
+    page.getByText("Female cubicles", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Time of day:/ })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByText("Male 1/2 · Female 1/2 available. No reservation needed.", {
       exact: true,
     }),
   ).toBeVisible();
-  await expect(page.getByText("0 of 2 available", { exact: true })).toBeVisible();
-  await expect(page.getByText("1 of 2 available", { exact: true })).toBeVisible();
+  for (const id of ["T201", "T202", "T203", "T204"]) {
+    await expect(page.getByText(id, { exact: true })).toBeVisible();
+  }
+  await expect(page.getByText("In use", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cleaning", { exact: true })).toBeVisible();
   await page.screenshot({
-    path: `qa/shower-availability-morning-${testInfo.project.name}.png`,
+    path: `qa/toilet-availability-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  for (const [floor, counts] of [
+    [1, "Male 1/2 · Female 2/2"],
+    [2, "Male 1/2 · Female 1/2"],
+    [3, "Male 2/2 · Female 0/2"],
+    [4, "Male 0/2 · Female 2/2"],
+  ] as const) {
+    await page
+      .getByRole("radio", { name: new RegExp(`^Level ${floor}:`) })
+      .click();
+    await expect(
+      page.getByRole("heading", {
+        name: `Level ${floor} cubicles`,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(`${counts} available. No reservation needed.`, {
+        exact: true,
+      }),
+    ).toBeVisible();
+    for (const suffix of ["01", "02", "03", "04"]) {
+      await expect(
+        page.getByText(`T${floor}${suffix}`, { exact: true }),
+      ).toBeVisible();
+    }
+  }
+  await page.screenshot({
+    path: `qa/toilet-levels-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page
+    .getByText("Female cubicles", { exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `qa/toilet-level-details-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Back to previous screen", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/hotel$/);
+  await page.screenshot({
+    path: `qa/hotel-toilet-entry-${testInfo.project.name}.png`,
     fullPage: true,
   });
 });
