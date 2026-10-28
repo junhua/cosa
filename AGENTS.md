@@ -1,5 +1,17 @@
 # Repository Guidelines
 
+## Current App and Local Preview — 28 October 2026
+
+The current guest app is the Expo/React Native project in `mobile/`. Read `mobile/AGENTS.md` and `mobile/README.md` for its requirements and commands. The `design/Cosa-Prototype-Local/` project described below is the older design prototype; its instructions apply only when working on that prototype.
+
+When asked to open, refresh, or update the localhost app for testing:
+
+- Fetch `origin` and compare the checkout with `origin/staging` (the default for latest development updates), unless the user names another branch. Bring in newer commits with a fast-forward where safe; preserve local changes and report any conflict instead of resetting or discarding work.
+- Serve `mobile/` at `http://localhost:8081/` using `npm run web -- --port 8081 --localhost`. Confirm the listening process belongs to this folder. Do not serve the older Vite prototype or packaged export for this request.
+- Keep Expo file watching and Fast Refresh enabled; do not set `CI=1` for an interactive test server. Reinstall locked dependencies when the dependency lock changes, and restart the server when configuration or dependencies require it.
+- Reload the browser after synchronization and verify the current app renders. The current opening page is CosaHub / Find your stay with a booking-reference field (`CSA-0913` for the local sample).
+- Verify both the served app folder and fetched commit before saying the preview is current. File watching updates local edits; it does not fetch remote commits. Perform the remote check on each requested preview update rather than claiming continuous remote synchronization.
+
 ## Project Structure & Module Organization
 
 Paths below are relative to the `product/` repository. The current project is an interactive frontend prototype with a packaged local export and editable React/TypeScript source.
